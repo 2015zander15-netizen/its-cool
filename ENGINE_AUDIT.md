@@ -8,7 +8,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 1. Targeted placement prediction restores the player's original yaw/pitch in `finally`; a runtime exception from a modded `BlockItem` is debug-logged and skipped.
 2. The inventory-wide `approxPlaceable` scan substitutes AIR after a runtime exception, preserving the result-list shape instead of aborting the builder tick.
 3. Block-state property comparisons use `Objects.equals` instead of reference identity.
-4. Litematica region volume uses checked 64-bit multiplication, rejects zero-sized regions, and caps allocations at 8,388,608 blocks; signed region-end and region-offset arithmetic also reject integer wraparound.
+4. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
@@ -35,7 +35,7 @@ No broad pathfinding rewrite is included. Before changing movement heuristics, r
 4. Inventory: required blocks partly in main inventory, not hotbar.
 5. Unreachable support: builder gives a clear failure/pause rather than retrying an impossible placement indefinitely.
 6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
-7. Malformed/oversized Litematica region: reject zero dimensions, volumes above 8,388,608 blocks, and overflowing signed region coordinates cleanly.
+7. Malformed Litematica data: reject zero dimensions, over-budget regions/aggregate schematics, overflowing signed coordinates/extents, missing palettes, invalid palette indices, unknown block identifiers, and truncated packed data cleanly.
 8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
 ## Verification boundary
