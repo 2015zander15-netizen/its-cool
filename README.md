@@ -27,6 +27,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 
 - Restores the player's original yaw/pitch in `finally`; a runtime exception from a modded block's placement prediction is logged in debug mode and skipped so another hotbar candidate can be tried.
 - Guards the inventory-wide `approxPlaceable` scan the same way, substituting AIR when a candidate's prediction throws so the heuristic cannot abort building.
+- Adds bounded placement retry/backoff: after five confirmed click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
 - Compares block-state property values with `Objects.equals`, not object identity.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
@@ -36,7 +37,8 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
 Each run clones the upstream branch, overlays the two staged main Java files and the schematic safety regression test, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
-- `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source
+- `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source and tests
+
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
