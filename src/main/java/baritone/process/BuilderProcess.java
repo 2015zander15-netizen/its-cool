@@ -115,6 +115,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private int builderTick;
     private Goal lastRequestedGoal;
     private int consecutivePathFailures;
+    private BlockPos lastFailureObservedPlayerPos;
+    private int lastFailureIncorrectPositionsHash;
     private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
     public int stopAtHeight = 0;
 
@@ -130,11 +132,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 
-    static int nextGoalPathFailureCount(boolean calcFailed, Goal previousGoal, Goal currentGoal, int previousCount) {
-        if (!calcFailed) {
-            return 0;
+    static int nextGoalPathFailureCount(boolean calcFailed, Goal previousGoal, Goal currentGoal,
+            int previousCount, boolean progressChanged) {
+        if (progressChanged || previousGoal == null || !previousGoal.equals(currentGoal)) {
+            return calcFailed ? 1 : 0;
         }
-        return previousGoal != null && previousGoal.equals(currentGoal) ? previousCount + 1 : 1;
+        return calcFailed ? previousCount + 1 : previousCount;
     }
 
     static int placementRetryDelayTicks(int attemptNumber) {
@@ -155,6 +158,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
+        lastFailureObservedPlayerPos = null;
+        lastFailureIncorrectPositionsHash = 0;
         this.name = name;
         this.schematic = schematic;
         this.realSchematic = null;
@@ -745,17 +750,26 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
             }
         }
+        BlockPos currentFeet = new BlockPos(ctx.playerFeet());
+        int incorrectHash = incorrectPositions == null ? 0 : incorrectPositions.hashCode();
+        boolean progressChanged = lastFailureObservedPlayerPos != null
+                && (!lastFailureObservedPlayerPos.equals(currentFeet)
+                || lastFailureIncorrectPositionsHash != incorrectHash);
         consecutivePathFailures = nextGoalPathFailureCount(
-                calcFailed, lastRequestedGoal, goal, consecutivePathFailures
+                calcFailed, lastRequestedGoal, goal, consecutivePathFailures, progressChanged
         );
         if (consecutivePathFailures >= 2) {
             logDirect("No path to the remaining build placements after repeated attempts. Builder paused; check obstacles, reachability, and required support blocks.");
             paused = true;
             lastRequestedGoal = null;
             consecutivePathFailures = 0;
+            lastFailureObservedPlayerPos = null;
+            lastFailureIncorrectPositionsHash = 0;
             return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
         }
         lastRequestedGoal = goal;
+        lastFailureObservedPlayerPos = currentFeet;
+        lastFailureIncorrectPositionsHash = incorrectHash;
         return new PathingCommandContext(goal, PathingCommandType.FORCE_REVALIDATE_GOAL_AND_PATH, bcc);
     }
 
@@ -1126,6 +1140,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
+        lastFailureObservedPlayerPos = null;
+        lastFailureIncorrectPositionsHash = 0;
         incorrectPositions = null;
         name = null;
         schematic = null;
