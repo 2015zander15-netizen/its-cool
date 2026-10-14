@@ -106,12 +106,14 @@ public class BuilderProcessPlacementRetryTest {
         BlockState wire = Blocks.REDSTONE_WIRE.defaultBlockState();
         BlockState lever = Blocks.LEVER.defaultBlockState();
         BlockState stairs = Blocks.OAK_STAIRS.defaultBlockState();
+        BlockState furnace = Blocks.FURNACE.defaultBlockState();
 
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "power")));
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "north")));
         assertTrue(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
         assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
         assertFalse(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "facing")));
+        assertFalse(BuilderProcess.isDerivedStateProperty(furnace, property(furnace, "lit")));
     }
 
     private static Property<?> property(BlockState state, String name) {
