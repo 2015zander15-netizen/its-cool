@@ -1,0 +1,90 @@
+name: Verify Litematica overflow patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "patches/0001-fix-litematica-volume-overflow.patch"
+      - ".github/workflows/verify-litematica-patch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout patch handoff repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Retrieve upstream Baritone branch and apply patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch update/1.21.11-fabric https://github.com/Nevarielle/baritone-1.21.11.git upstream
+          git -C upstream apply --check "$GITHUB_WORKSPACE/patches/0001-fix-litematica-volume-overflow.patch"
+          git -C upstream apply "$GITHUB_WORKSPACE/patches/0001-fix-litematica-volume-overflow.patch"
+
+      - name: Package patched full source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+          cd upstream
+          zip -qr "$GITHUB_WORKSPACE/artifacts/baritone-1.21.11-source-with-litematica-fix.zip" . \
+            -x ".git/*" ".gradle/*" "*/.git/*" "*/.gradle/*" "*/build/*"
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        working-directory: upstream
+        run: ./gradlew test --no-daemon
+
+      - name: Build Fabric remapped JAR
+        id: build
+        continue-on-error: true
+        working-directory: upstream
+        run: ./gradlew :fabric:remapJar --no-daemon
+
+      - name: Upload patched full source ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baritone-1.21.11-source-with-litematica-fix
+          path: artifacts/baritone-1.21.11-source-with-litematica-fix.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload built Fabric JAR if produced
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baritone-1.21.11-fabric-build
+          path: upstream/fabric/build/libs/*.jar
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Summarize verification
+        if: always()
+        shell: bash
+        env:
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          BUILD_RESULT: ${{ steps.build.outcome }}
+        run: |
+          {
+            echo "## Litematica patch verification"
+            echo "- Unit tests: ${TEST_RESULT:-not run}"
+            echo "- Fabric remapped JAR build: ${BUILD_RESULT:-not run}"
+            echo "- Full patched source ZIP: uploaded when patch application and packaging succeeded"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${TEST_RESULT:-}" != "success" || "${BUILD_RESULT:-}" != "success" ]]; then
+            exit 1
+          fi
