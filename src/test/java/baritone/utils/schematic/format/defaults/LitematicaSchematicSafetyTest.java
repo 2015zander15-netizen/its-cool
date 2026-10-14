@@ -40,6 +40,21 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsTooManyColumnArraysEvenWhenVolumeIsBelowLimit() {
+        LitematicaSchematic.getVolume(region(1024, 1, 1024));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsSubregionExtentOverflow() {
+        LitematicaSchematic.validateExtent(Integer.MAX_VALUE - 1, 3, "x");
+    }
+
+    @Test
+    public void acceptsRepresentableSubregionExtent() {
+        LitematicaSchematic.validateExtent(100, 25, "z");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsUnrepresentableAbsoluteDimension() {
         LitematicaSchematic.getVolume(region(Integer.MIN_VALUE, 1, 1));
     }
