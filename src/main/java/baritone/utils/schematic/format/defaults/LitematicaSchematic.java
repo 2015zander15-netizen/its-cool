@@ -71,7 +71,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param s axis that should be read.
      * @return the lower coord of the requested axis.
      */
-    private static int getMinOfSubregion(CompoundTag subReg, String s) {
+    static int getMinOfSubregion(CompoundTag subReg, String s) {
         int position = subReg.getCompoundOrEmpty("Position").getIntOr(s, 0);
         int size = subReg.getCompoundOrEmpty("Size").getIntOr(s, 0);
         long oppositeEnd = (long) position + size + 1L;
@@ -141,7 +141,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      *
      * @return the volume of the subregion.
      */
-    private static long getVolume(CompoundTag subReg) {
+    static long getVolume(CompoundTag subReg) {
         CompoundTag size = subReg.getCompoundOrEmpty("Size");
         long x = getAbsoluteDimension(size, "x");
         long y = getAbsoluteDimension(size, "y");
@@ -193,7 +193,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     /**
      * Converts an absolute coordinate into a schematic-local offset without allowing int wraparound.
      */
-    private static int getCheckedOffset(int coordinate, int minimumCoordinate, String axis) {
+    static int getCheckedOffset(int coordinate, int minimumCoordinate, String axis) {
         long offset = (long) coordinate - minimumCoordinate;
         if (offset < 0 || offset > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Litematica subregion offset is out of range on axis " + axis + ": " + offset);
