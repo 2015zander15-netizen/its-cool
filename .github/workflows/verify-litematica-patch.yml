@@ -1,4 +1,4 @@
-name: Verify Litematica overflow patch
+name: Verify Baritone engine fixes
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           cd upstream
-          zip -qr "$GITHUB_WORKSPACE/artifacts/baritone-1.21.11-source-with-litematica-fix.zip" . \
+          zip -qr "$GITHUB_WORKSPACE/artifacts/baritone-1.21.11-source-with-engine-fixes.zip" . \
             -x ".git/*" ".gradle/*" "*/.git/*" "*/.gradle/*" "*/build/*"
 
       - name: Run tests
@@ -64,8 +64,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: baritone-1.21.11-source-with-litematica-fix
-          path: artifacts/baritone-1.21.11-source-with-litematica-fix.zip
+          name: baritone-1.21.11-source-with-engine-fixes
+          path: artifacts/baritone-1.21.11-source-with-engine-fixes.zip
           if-no-files-found: warn
           retention-days: 30
 
@@ -95,10 +95,10 @@ jobs:
           BUILD_RESULT: ${{ steps.build.outcome }}
         run: |
           {
-            echo "## Litematica patch verification"
+            echo "## Baritone engine fixes verification"
             echo "- Unit tests: ${TEST_RESULT:-not run}"
             echo "- Fabric remapped JAR build: ${BUILD_RESULT:-not run}"
-            echo "- Full patched source ZIP: uploaded when patch application and packaging succeeded"
+            echo "- Full patched source ZIP: uploaded when patch integration and packaging succeeded"
           } >> "$GITHUB_STEP_SUMMARY"
           if [[ "${TEST_RESULT:-}" != "success" || "${BUILD_RESULT:-}" != "success" ]]; then
             exit 1
