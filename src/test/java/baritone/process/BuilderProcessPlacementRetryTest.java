@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
+import baritone.api.pathing.goals.GoalBlock;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.junit.Test;
@@ -34,6 +35,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BuilderProcessPlacementRetryTest {
+
+    @Test
+    public void pathFailureCountIncreasesOnlyForSameGoalWithoutProgress() {
+        GoalBlock goal = new GoalBlock(1, 2, 3);
+        GoalBlock differentGoal = new GoalBlock(4, 5, 6);
+
+        assertEquals(1, BuilderProcess.nextGoalPathFailureCount(true, goal, goal, 0, false));
+        assertEquals(2, BuilderProcess.nextGoalPathFailureCount(true, goal, goal, 1, false));
+        assertEquals(1, BuilderProcess.nextGoalPathFailureCount(true, goal, differentGoal, 1, false));
+        assertEquals(0, BuilderProcess.nextGoalPathFailureCount(false, goal, goal, 1, true));
+        assertEquals(1, BuilderProcess.nextGoalPathFailureCount(true, goal, goal, 1, true));
+        assertEquals(1, BuilderProcess.nextGoalPathFailureCount(false, goal, goal, 1, false));
+    }
 
     @Test
     public void retryDelayIncreasesForEarlyAttempts() {
