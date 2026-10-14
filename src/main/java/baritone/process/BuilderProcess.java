@@ -417,6 +417,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         (BlockHitResult) result
                 ) {}); // that {} gives us access to a protected constructor
                 wouldBePlaced = ((BlockItem) stack.getItem()).getBlock().getStateForPlacement(placementContext);
+            } catch (RuntimeException exception) {
+                // A broken modded block's prediction must not abort the entire builder tick.
+                logDebug("Unable to predict placement for hotbar slot " + i + ": " + exception);
+                continue;
             } finally {
                 ctx.player().setYRot(originalYaw);
                 ctx.player().setXRot(originalPitch);
