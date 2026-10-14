@@ -6,7 +6,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 
 ### Changes in the staged source
 1. Targeted placement prediction restores the player's original yaw/pitch in `finally`; a runtime exception from a modded `BlockItem` is debug-logged and skipped.
-2. The inventory-wide `approxPlaceable` scan substitutes AIR after a runtime exception, preserving the result-list shape instead of aborting the builder tick.
+2. The inventory-wide `approxPlaceable` scan retains a block's default state if local placement prediction returns null or throws. Inventory matching is by block type; exact target-context placement is verified separately.
 3. Failed placement clicks use increasing retry delays; after five attempts with no target-state change, the builder pauses with coordinates and troubleshooting hints.
 4. Block-state property comparisons use `Objects.equals` instead of reference identity.
 5. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
