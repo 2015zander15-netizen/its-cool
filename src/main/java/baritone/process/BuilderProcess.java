@@ -423,6 +423,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return voxelshape.isEmpty() || ctx.world().isUnobstructed(null, voxelshape.move(pos.getX(), pos.getY(), pos.getZ()));
     }
 
+    private boolean canSurviveAt(BlockState state, BlockPos pos) {
+        try {
+            return state.canSurvive(ctx.world(), pos);
+        } catch (RuntimeException exception) {
+            logDebug("Unable to validate support requirements for " + state + " at " + pos + ": " + exception);
+            return false;
+        }
+    }
+
     private Optional<Placement> possibleToPlace(BlockState toPlace, int x, int y, int z, BlockStateInterface bsi) {
         for (Direction against : Direction.values()) {
             BetterBlockPos placeAgainstPos = new BetterBlockPos(x, y, z).relative(against);
@@ -430,7 +439,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (MovementHelper.isReplaceable(placeAgainstPos.x, placeAgainstPos.y, placeAgainstPos.z, placeAgainstState, bsi)) {
                 continue;
             }
-            if (!toPlace.canSurvive(ctx.world(), new BetterBlockPos(x, y, z))) {
+            if (!canSurviveAt(toPlace, new BetterBlockPos(x, y, z))) {
                 continue;
             }
             if (!placementPlausible(new BetterBlockPos(x, y, z), toPlace)) {
@@ -916,9 +925,16 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         breakable.forEach(pos -> toBreak.add(breakGoal(pos, bcc)));
         List<Goal> toPlace = new ArrayList<>();
         placeable.forEach(pos -> {
-            if (!placeable.contains(pos.below()) && !placeable.contains(pos.below(2))) {
-                toPlace.add(placementGoal(pos, bcc));
+            if (placeable.contains(pos.below()) || placeable.contains(pos.below(2))) {
+                return; // build lower dependencies first
             }
+            BlockState desired = bcc.getSchematic(
+                    pos.getX(), pos.getY(), pos.getZ(), bcc.bsi.get0(pos)
+            );
+            if (desired == null || !canSurviveAt(desired, pos)) {
+                return; // do not route to a dependent block until its support exists
+            }
+            toPlace.add(placementGoal(pos, bcc));
         });
         sourceLiquids.forEach(pos -> toPlace.add(new GoalBlock(pos.above())));
 
