@@ -302,6 +302,15 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         }
     }
 
+    static int validatePaletteIndex(int paletteIndex, int paletteSize, long entryIndex) {
+        if (paletteIndex < 0 || paletteIndex >= paletteSize) {
+            throw new IllegalArgumentException("Litematica BlockStates entry " + entryIndex
+                    + " references missing palette index " + paletteIndex
+                    + " (palette size " + paletteSize + ")");
+        }
+        return paletteIndex;
+    }
+
     /**
      * Writes the file data in to the IBlockstate array.
      *
@@ -324,12 +333,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         for (int y = 0; y < sizeY; y++) {
             for (int z = 0; z < sizeZ; z++) {
                 for (int x = 0; x < sizeX; x++) {
-                    int paletteIndex = bitArray.getAt(index);
-                    if (paletteIndex < 0 || paletteIndex >= blockList.length) {
-                        throw new IllegalArgumentException("Litematica BlockStates entry " + index
-                                + " references missing palette index " + paletteIndex
-                                + " (palette size " + blockList.length + ")");
-                    }
+                    int paletteIndex = validatePaletteIndex(bitArray.getAt(index), blockList.length, index);
                     states[x][z][y] = blockList[paletteIndex];
                     index++;
                 }
