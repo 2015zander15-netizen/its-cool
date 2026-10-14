@@ -407,7 +407,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                             continue;
                         }
                         desirableOnHotbar.add(desired);
-                        BlockPos target = new BetterBlockPos(x, y, z);
                         PlacementAttempt priorAttempt = placementAttempts.get(target);
                         if (priorAttempt != null && builderTick < priorAttempt.retryAtTick) {
                             continue;
