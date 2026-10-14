@@ -97,7 +97,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             );
 
     private static final Set<String> DYNAMIC_STATE_PROPERTIES =
-            ImmutableSet.of("power", "powered", "lit", "extended", "triggered");
+            ImmutableSet.of("power", "powered", "lit", "extended", "triggered", "enabled");
     private static final Set<String> NEIGHBOR_CONNECTION_PROPERTIES =
             ImmutableSet.of("north", "east", "south", "west", "up");
 
@@ -1330,6 +1330,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || normalizedClass.contains("piston")
                 || normalizedClass.contains("observer")
                 || normalizedClass.contains("tripwire")
+                || normalizedClass.contains("dispenser")
+                || normalizedClass.contains("dropper")
+                || normalizedClass.contains("hopper")
                 || normalizedClass.contains("rail")
                 || normalizedClass.contains("daylightdetector")
                 || normalizedClass.contains("targetblock")
