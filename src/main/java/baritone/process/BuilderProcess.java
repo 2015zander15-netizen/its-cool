@@ -1193,9 +1193,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         boolean ignoreDirection = Baritone.settings().buildIgnoreDirection.value;
         List<String> ignoredProps = Baritone.settings().buildIgnoreProperties.value;
-        if (!ignoreDirection && ignoredProps.isEmpty()) {
-            return first.equals(second); // early return if no properties are being ignored
-        }
         Map<Property<?>, Comparable<?>> map1 = first.getValues();
         Map<Property<?>, Comparable<?>> map2 = second.getValues();
         if (!ignoreDirection && ignoredProps.isEmpty()) {
