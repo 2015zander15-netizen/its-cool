@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OpenAI Assistant <noreply@openai.com>
+Date: Wed, 14 Oct 2026 02:00:00 -0500
+Subject: [PATCH] Fix Litematica subregion volume overflow
+
+Prevent dimension multiplication from overflowing before widening to long,
+reject dimensions that cannot be represented as positive int array sizes, and
+reject volumes that cannot be represented by the builder's int loop index.
+---
+ .../format/defaults/LitematicaSchematic.java  | 31 +++++++++++++++++++---
+ 1 file changed, 27 insertions(+), 4 deletions(-)
+
+diff --git a/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java b/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java
+index 0b40cd5700eb65fc8507995e7eaf64785cedc192..0000000000000000000000000000000000000000 100644
+--- a/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java
++++ b/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java
+@@ -135,6 +135,34 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
+      * @return the volume of the subregion.
+      */
+     private static long getVolume(CompoundTag subReg) {
+         CompoundTag size = subReg.getCompoundOrEmpty("Size");
+-        return Math.abs(size.getIntOr("x", 0) * size.getIntOr("y", 0) * size.getIntOr("z", 0));
+-    }
++        long x = getAbsoluteDimension(size, "x");
++        long y = getAbsoluteDimension(size, "y");
++        long z = getAbsoluteDimension(size, "z");
++
++        final long volume;
++        try {
++            volume = Math.multiplyExact(Math.multiplyExact(x, y), z);
++        } catch (ArithmeticException e) {
++            throw new IllegalArgumentException("Litematica subregion volume overflows a 64-bit integer", e);
++        }
++
++        // The current decoding loop uses an int index, so larger volumes cannot be decoded safely.
++        if (volume > Integer.MAX_VALUE) {
++            throw new IllegalArgumentException("Litematica subregion is too large to decode: " + volume + " blocks");
++        }
++        return volume;
++    }
++
++    /**
++     * Returns the absolute region dimension, rejecting the one int value whose absolute value
++     * cannot be represented as a positive int for the backing array dimensions.
++     */
++    private static int getAbsoluteDimension(CompoundTag size, String axis) {
++        int dimension = size.getIntOr(axis, 0);
++        if (dimension == Integer.MIN_VALUE) {
++            throw new IllegalArgumentException("Invalid Litematica subregion dimension for axis " + axis);
++        }
++        return Math.abs(dimension);
++    }
++
+@@ -179,9 +207,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
+         int offsetY = getMinOfSubregion(subReg, "y") - offsetMinCorner.getY();
+         int offsetZ = getMinOfSubregion(subReg, "z") - offsetMinCorner.getZ();
+         CompoundTag size = subReg.getCompoundOrEmpty("Size");
+-        int sizeX = Math.abs(size.getIntOr("x", 0));
+-        int sizeY = Math.abs(size.getIntOr("y", 0));
+-        int sizeZ = Math.abs(size.getIntOr("z", 0));
++        int sizeX = getAbsoluteDimension(size, "x");
++        int sizeY = getAbsoluteDimension(size, "y");
++        int sizeZ = getAbsoluteDimension(size, "z");
+         BlockState[][][] states = new BlockState[sizeX][sizeZ][sizeY];
+         int index = 0;
+         for (int y = 0; y < sizeY; y++) {
+-- 
+2.46.0
