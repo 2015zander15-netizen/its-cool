@@ -229,6 +229,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     public void resume() {
         resetPathFailureTracking();
+        placementAttempts.clear();
         paused = false;
     }
 
@@ -398,6 +399,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     }
                     BlockState curr = bcc.bsi.get0(x, y, z);
                     if (MovementHelper.isReplaceable(x, y, z, curr, bcc.bsi) && !valid(curr, desired, false)) {
+                        BlockPos target = new BetterBlockPos(x, y, z);
+                        if (isPlacementAttemptExhausted(target, curr, desired)) {
+                            continue;
+                        }
                         if (dy == 1 && bcc.bsi.get0(x, y + 1, z).getBlock() instanceof AirBlock) {
                             continue;
                         }
