@@ -23,7 +23,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 ### Builder placement prediction safety
 `src/main/java/baritone/process/BuilderProcess.java`
 
-- Restores the player's original yaw/pitch in `finally` if orientation-sensitive placement prediction throws.
+- Restores the player's original yaw/pitch in `finally`; a runtime exception from a modded block's placement prediction is logged in debug mode and skipped so another hotbar candidate can be tried.
 - Compares block-state property values with `Objects.equals`, not object identity.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
