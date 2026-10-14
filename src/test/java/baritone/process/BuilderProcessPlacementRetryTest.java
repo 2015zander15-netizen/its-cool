@@ -22,6 +22,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -68,6 +69,27 @@ public class BuilderProcessPlacementRetryTest {
                 Blocks.STONE.defaultBlockState(),
                 Blocks.OAK_STAIRS.defaultBlockState()
         ));
+    }
+
+    @Test
+    public void derivedRedstonePropertiesAreRecognizedAsDynamic() {
+        BlockState wire = Blocks.REDSTONE_WIRE.defaultBlockState();
+        BlockState lever = Blocks.LEVER.defaultBlockState();
+        BlockState stairs = Blocks.OAK_STAIRS.defaultBlockState();
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "power")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "north")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
+        assertFalse(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "facing")));
+    }
+
+    private static Property<?> property(BlockState state, String name) {
+        Property<?> property = state.getBlock().getStateDefinition().getProperty(name);
+        if (property == null) {
+            throw new AssertionError("Expected property " + name + " on " + state.getBlock());
+        }
+        return property;
     }
 
     @Test
