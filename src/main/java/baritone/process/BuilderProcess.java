@@ -84,6 +84,10 @@ import static baritone.api.pathing.movement.ActionCosts.COST_INF;
 
 public final class BuilderProcess extends BaritoneProcessHelper implements IBuilderProcess {
 
+    private static final int MAX_PLACEMENT_ATTEMPTS = 5;
+    private static final int INITIAL_PLACEMENT_RETRY_TICKS = 4;
+    private static final int MAX_PLACEMENT_RETRY_TICKS = 32;
+
     private static final Set<Property<?>> ORIENTATION_PROPS =
             ImmutableSet.of(
                     RotatedPillarBlock.AXIS, HorizontalDirectionalBlock.FACING,
@@ -103,7 +107,29 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private int layer;
     private int numRepeats;
     private List<BlockState> approxPlaceable;
+    private int builderTick;
+    private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
     public int stopAtHeight = 0;
+
+    private static final class PlacementAttempt {
+        private final BlockState originalState;
+        private final BlockState desiredState;
+        private int attempts;
+        private int retryAtTick;
+
+        private PlacementAttempt(BlockState originalState, BlockState desiredState) {
+            this.originalState = originalState;
+            this.desiredState = desiredState;
+        }
+    }
+
+    static int placementRetryDelayTicks(int attemptNumber) {
+        if (attemptNumber < 1) {
+            throw new IllegalArgumentException("attemptNumber must be at least 1");
+        }
+        int exponent = Math.min(attemptNumber - 1, 3);
+        return Math.min(INITIAL_PLACEMENT_RETRY_TICKS << exponent, MAX_PLACEMENT_RETRY_TICKS);
+    }
 
     public BuilderProcess(Baritone baritone) {
         super(baritone);
@@ -111,6 +137,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     @Override
     public void build(String name, ISchematic schematic, Vec3i origin) {
+        placementAttempts.clear();
+        builderTick = 0;
         this.name = name;
         this.schematic = schematic;
         this.realSchematic = null;
@@ -312,12 +340,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public static class Placement {
 
         private final int hotbarSelection;
+        private final BlockPos target;
         private final BlockPos placeAgainst;
         private final Direction side;
         private final Rotation rot;
 
-        public Placement(int hotbarSelection, BlockPos placeAgainst, Direction side, Rotation rot) {
+        public Placement(int hotbarSelection, BlockPos target, BlockPos placeAgainst, Direction side, Rotation rot) {
             this.hotbarSelection = hotbarSelection;
+            this.target = target;
             this.placeAgainst = placeAgainst;
             this.side = side;
             this.rot = rot;
@@ -342,6 +372,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                             continue;
                         }
                         desirableOnHotbar.add(desired);
+                        BlockPos target = new BetterBlockPos(x, y, z);
+                        PlacementAttempt priorAttempt = placementAttempts.get(target);
+                        if (priorAttempt != null && builderTick < priorAttempt.retryAtTick) {
+                            continue;
+                        }
                         Optional<Placement> opt = possibleToPlace(desired, x, y, z, bcc.bsi);
                         if (opt.isPresent()) {
                             return opt;
@@ -386,12 +421,53 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == against.getOpposite()) {
                     OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
                     if (hotbar.isPresent()) {
-                        return Optional.of(new Placement(hotbar.getAsInt(), placeAgainstPos, against.getOpposite(), rot));
+                        return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
+                                placeAgainstPos, against.getOpposite(), rot));
                     }
                 }
             }
         }
         return Optional.empty();
+    }
+
+    private void recordPlacementAttempt(BlockPos target, BlockState desired) {
+        BlockState current = ctx.world().getBlockState(target);
+        PlacementAttempt attempt = placementAttempts.get(target);
+        if (attempt == null || !attempt.originalState.equals(current)
+                || !sameBlockstate(attempt.desiredState, desired)) {
+            attempt = new PlacementAttempt(current, desired);
+            placementAttempts.put(new BlockPos(target), attempt);
+        }
+        attempt.attempts++;
+        attempt.retryAtTick = builderTick + placementRetryDelayTicks(attempt.attempts);
+    }
+
+    /**
+     * Clears attempts when the target succeeds or its world state changes. Returns a user-facing
+     * explanation once a placement has repeatedly been rejected without any target-state change.
+     */
+    private String unresolvedPlacementFailure(BuilderCalculationContext bcc) {
+        Iterator<Map.Entry<BlockPos, PlacementAttempt>> iterator = placementAttempts.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos, PlacementAttempt> entry = iterator.next();
+            BlockPos pos = entry.getKey();
+            PlacementAttempt attempt = entry.getValue();
+            BlockState current = bcc.bsi.get0(pos);
+            BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+
+            if (desired == null || !sameBlockstate(attempt.desiredState, desired) || valid(current, desired, false)
+                    || !current.equals(attempt.originalState)) {
+                iterator.remove();
+                continue;
+            }
+            if (attempt.attempts >= MAX_PLACEMENT_ATTEMPTS && builderTick >= attempt.retryAtTick) {
+                return String.format(
+                        "Placement at %s failed after %s attempts. Check reach, support blocks, inventory, and server permissions. Builder paused.",
+                        pos, attempt.attempts
+                );
+            }
+        }
+        return null;
     }
 
     private OptionalInt hasAnyItemThatWouldPlace(BlockState desired, HitResult result, Rotation rot) {
@@ -458,6 +534,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     @Override
     public PathingCommand onTick(boolean calcFailed, boolean isSafeToCancel) {
+        builderTick++;
         return onTick(calcFailed, isSafeToCancel, 0);
     }
 
@@ -524,6 +601,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             };
         }
         BuilderCalculationContext bcc = new BuilderCalculationContext();
+        String placementFailure = unresolvedPlacementFailure(bcc);
+        if (placementFailure != null) {
+            logDirect(placementFailure);
+            paused = true;
+            return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
+        }
         if (!recalc(bcc)) {
             if (Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
                 logDirect("Starting layer " + layer);
@@ -582,6 +665,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
             if ((ctx.isLookingAt(toPlace.get().placeAgainst) && ((BlockHitResult) ctx.objectMouseOver()).getDirection().equals(toPlace.get().side)) || ctx.playerRotations().isReallyCloseTo(rot)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
+                BlockState desired = bcc.getSchematic(
+                        toPlace.get().target.getX(), toPlace.get().target.getY(), toPlace.get().target.getZ(),
+                        bcc.bsi.get0(toPlace.get().target)
+                );
+                if (desired != null) {
+                    recordPlacementAttempt(toPlace.get().target, desired);
+                }
             }
             return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
         }
@@ -994,6 +1084,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     @Override
     public void onLostControl() {
+        placementAttempts.clear();
+        builderTick = 0;
         incorrectPositions = null;
         name = null;
         schematic = null;
