@@ -48,6 +48,8 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     private static final long MAX_REGION_VOLUME = 8_388_608L;
     // BlockState[][][] allocates one leaf array per (x, z) column; cap their count too.
     private static final long MAX_REGION_COLUMN_ARRAYS = 262_144L;
+    private static final long MAX_SCHEMATIC_VOLUME = 8_388_608L;
+    private static final long MAX_SCHEMATIC_COLUMN_ARRAYS = 262_144L;
 
     /**
      * @param nbtTagCompound a decompressed file stream aka nbt data.
@@ -87,13 +89,26 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param blockStatePalette List of all different block types used in the schematic.
      * @return Array of BlockStates.
      */
-    private static BlockState[] getBlockList(ListTag blockStatePalette) {
+    static BlockState[] getBlockList(ListTag blockStatePalette) {
+        if (blockStatePalette.isEmpty()) {
+            throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
+        }
+
         BlockState[] blockList = new BlockState[blockStatePalette.size()];
-
         for (int i = 0; i < blockStatePalette.size(); i++) {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse((((CompoundTag) blockStatePalette.get(i)).getStringOr("Name", ""))));
-            CompoundTag properties = ((CompoundTag) blockStatePalette.get(i)).getCompoundOrEmpty("Properties");
-
+            CompoundTag paletteEntry = (CompoundTag) blockStatePalette.get(i);
+            String blockName = paletteEntry.getStringOr("Name", "");
+            final Identifier blockId;
+            try {
+                blockId = Identifier.parse(blockName);
+            } catch (RuntimeException exception) {
+                throw new IllegalArgumentException("Invalid block identifier in Litematica palette: " + blockName, exception);
+            }
+            Block block = BuiltInRegistries.BLOCK.getValue(blockId);
+            if (block == null) {
+                throw new IllegalArgumentException("Unknown block in Litematica palette: " + blockId);
+            }
+            CompoundTag properties = paletteEntry.getCompoundOrEmpty("Properties");
             blockList[i] = getBlockState(block, properties);
         }
         return blockList;
@@ -195,12 +210,46 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param s axis.
      * @return the lowest coordinate of that axis of the schematic.
      */
-    private static int getMinOfSchematic(CompoundTag nbt, String s) {
-        int n = Integer.MAX_VALUE;
-        for (CompoundTag subReg : getRegions(nbt)) {
-            n = Math.min(n, getMinOfSubregion(subReg, s));
+    private static int getMinOfSchematic(CompoundTag[] regions, String axis) {
+        if (regions.length == 0) {
+            throw new IllegalArgumentException("Litematica schematic contains no regions");
         }
-        return n;
+        int minimum = Integer.MAX_VALUE;
+        for (CompoundTag subRegion : regions) {
+            minimum = Math.min(minimum, getMinOfSubregion(subRegion, axis));
+        }
+        return minimum;
+    }
+
+    /**
+     * Validates all region sizes and the aggregate memory budget before decoding any 3D arrays.
+     */
+    private static void validateSchematicBudget(CompoundTag[] regions) {
+        if (regions.length == 0) {
+            throw new IllegalArgumentException("Litematica schematic contains no regions");
+        }
+        long totalVolume = 0;
+        long totalColumnArrays = 0;
+        for (CompoundTag subRegion : regions) {
+            long volume = getVolume(subRegion);
+            CompoundTag size = subRegion.getCompoundOrEmpty("Size");
+            long x = getAbsoluteDimension(size, "x");
+            long z = getAbsoluteDimension(size, "z");
+            try {
+                totalVolume = Math.addExact(totalVolume, volume);
+                totalColumnArrays = Math.addExact(totalColumnArrays, Math.multiplyExact(x, z));
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException("Litematica schematic aggregate size overflows a 64-bit integer", exception);
+            }
+            if (totalVolume > MAX_SCHEMATIC_VOLUME) {
+                throw new IllegalArgumentException("Litematica schematic exceeds the safe total volume: "
+                        + totalVolume + " blocks (maximum " + MAX_SCHEMATIC_VOLUME + ")");
+            }
+            if (totalColumnArrays > MAX_SCHEMATIC_COLUMN_ARRAYS) {
+                throw new IllegalArgumentException("Litematica schematic would allocate too many column arrays: "
+                        + totalColumnArrays + " (maximum " + MAX_SCHEMATIC_COLUMN_ARRAYS + ")");
+            }
+        }
     }
 
     /**
@@ -230,8 +279,14 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
-        Vec3i offsetMinCorner = new Vec3i(getMinOfSchematic(nbt, "x"), getMinOfSchematic(nbt, "y"), getMinOfSchematic(nbt, "z"));
-        for (CompoundTag subReg : getRegions(nbt)) {
+        CompoundTag[] regions = getRegions(nbt);
+        validateSchematicBudget(regions);
+        Vec3i offsetMinCorner = new Vec3i(
+                getMinOfSchematic(regions, "x"),
+                getMinOfSchematic(regions, "y"),
+                getMinOfSchematic(regions, "z")
+        );
+        for (CompoundTag subReg : regions) {
             ListTag usedBlockTypes = subReg.getListOrEmpty("BlockStatePalette");
             BlockState[] blockList = getBlockList(usedBlockTypes);
 
@@ -285,7 +340,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * Usage under LGPLv3 with the permission of the author.
      * <a href="https://github.com/maruohon/litematica">...</a>
      */
-    private static class LitematicaBitArray {
+    static class LitematicaBitArray {
         /**
          * The long array that is used to store the data for this BitArray.
          */
@@ -306,30 +361,39 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
         public LitematicaBitArray(int bitsPerEntryIn, long arraySizeIn, @Nullable long[] longArrayIn) {
             Validate.inclusiveBetween(1L, 32L, bitsPerEntryIn);
+            if (arraySizeIn <= 0) {
+                throw new IllegalArgumentException("Litematica bit array must contain at least one entry");
+            }
             this.arraySize = arraySizeIn;
             this.bitsPerEntry = bitsPerEntryIn;
             this.maxEntryValue = (1L << bitsPerEntryIn) - 1L;
 
+            int requiredLongCount = getRequiredLongArrayCount(bitsPerEntryIn, arraySizeIn);
             if (longArrayIn != null) {
+                if (longArrayIn.length < requiredLongCount) {
+                    throw new IllegalArgumentException("Truncated Litematica BlockStates array: expected at least "
+                            + requiredLongCount + " longs, got " + longArrayIn.length);
+                }
                 this.longArray = longArrayIn;
             } else {
-                this.longArray = new long[(int) (roundUp(arraySizeIn * (long) bitsPerEntryIn, 64L) / 64L)];
+                this.longArray = new long[requiredLongCount];
             }
         }
 
-        public static long roundUp(long number, long interval) {
-            int sign = 1;
-            if (interval == 0) {
-                return 0;
-            } else if (number == 0) {
-                return interval;
-            } else {
-                if (number < 0) {
-                    sign = -1;
+        static int getRequiredLongArrayCount(int bitsPerEntry, long arraySize) {
+            Validate.inclusiveBetween(1L, 32L, bitsPerEntry);
+            if (arraySize <= 0) {
+                throw new IllegalArgumentException("Litematica bit array must contain at least one entry");
+            }
+            try {
+                long bitCount = Math.multiplyExact(arraySize, (long) bitsPerEntry);
+                long longCount = Math.addExact(bitCount, 63L) / 64L;
+                if (longCount > Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException("Litematica BlockStates array is too large: " + longCount + " longs");
                 }
-
-                long i = number % (interval * sign);
-                return i == 0 ? number : number + (interval * sign) - i;
+                return (int) longCount;
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException("Litematica BlockStates bit count overflows a 64-bit integer", exception);
             }
         }
 
