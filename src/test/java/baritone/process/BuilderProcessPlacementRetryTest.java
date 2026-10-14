@@ -17,10 +17,14 @@
 
 package baritone.process;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -65,5 +69,19 @@ public class BuilderProcessPlacementRetryTest {
                 Blocks.OAK_STAIRS.defaultBlockState()
         ));
     }
+
+    @Test
+    public void hitMustMatchExactSupportBlockAndFace() {
+        BlockPos support = new BlockPos(1, 2, 3);
+        HitResult matching = new BlockHitResult(new Vec3(1.5, 2.5, 3.5), Direction.UP, support, false);
+        HitResult wrongFace = new BlockHitResult(new Vec3(1.5, 2.5, 3.5), Direction.NORTH, support, false);
+        HitResult wrongBlock = new BlockHitResult(new Vec3(2.5, 2.5, 3.5), Direction.UP, new BlockPos(2, 2, 3), false);
+
+        assertTrue(BuilderProcess.isAimedAtCorrectFace(matching, support, Direction.UP));
+        assertFalse(BuilderProcess.isAimedAtCorrectFace(wrongFace, support, Direction.UP));
+        assertFalse(BuilderProcess.isAimedAtCorrectFace(wrongBlock, support, Direction.UP));
+        assertFalse(BuilderProcess.isAimedAtCorrectFace(null, support, Direction.UP));
+    }
+
 
 }
