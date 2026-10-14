@@ -50,6 +50,44 @@ public class LitematicaSchematicSafetyTest {
         LitematicaSchematic.validateExtent(Integer.MAX_VALUE - 1, 3, "x");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsAggregateVolumeAcrossRegions() {
+        CompoundTag largeRegionA = region(2048, 2048, 2);
+        CompoundTag largeRegionB = region(2048, 2048, 2);
+        LitematicaSchematic.validateSchematicBudget(new CompoundTag[]{largeRegionA, largeRegionB});
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsSchematicWithoutRegions() {
+        LitematicaSchematic.validateSchematicBudget(new CompoundTag[0]);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsEmptyBlockPalette() {
+        LitematicaSchematic.getBlockList(new ListTag());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsTruncatedPackedBlockStateArray() {
+        new LitematicaSchematic.LitematicaBitArray(2, 64, new long[1]);
+    }
+
+    @Test
+    public void calculatesPackedLongArrayLength() {
+        assertEquals(2, LitematicaSchematic.LitematicaBitArray.getRequiredLongArrayCount(5, 13));
+        assertEquals(5, LitematicaSchematic.LitematicaBitArray.getRequiredLongArrayCount(5, 64));
+    }
+
+    @Test
+    public void acceptsValidPaletteIndex() {
+        assertEquals(2, LitematicaSchematic.validatePaletteIndex(2, 3, 12));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsPaletteIndexOutsidePalette() {
+        LitematicaSchematic.validatePaletteIndex(3, 3, 12);
+    }
+
     @Test
     public void acceptsRepresentableSubregionExtent() {
         LitematicaSchematic.validateExtent(100, 25, "z");
