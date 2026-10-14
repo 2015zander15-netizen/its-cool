@@ -492,10 +492,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     /**
-     * Clears attempts when the target succeeds or its world state changes. Returns a user-facing
-     * explanation once a placement has repeatedly been rejected without any target-state change.
+     * Clears attempts when the target succeeds, changes, or no longer belongs to the active schematic.
+     * Exhausted attempts are deferred by assemble() so the builder can make progress elsewhere first.
      */
-    private String unresolvedPlacementFailure(BuilderCalculationContext bcc) {
+    private void cleanupPlacementAttempts(BuilderCalculationContext bcc) {
         Iterator<Map.Entry<BlockPos, PlacementAttempt>> iterator = placementAttempts.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<BlockPos, PlacementAttempt> entry = iterator.next();
@@ -507,16 +507,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (desired == null || !sameBlockstate(attempt.desiredState, desired) || valid(current, desired, false)
                     || !current.equals(attempt.originalState)) {
                 iterator.remove();
-                continue;
-            }
-            if (attempt.attempts >= MAX_PLACEMENT_ATTEMPTS && builderTick >= attempt.retryAtTick) {
-                return String.format(
-                        "Placement at %s failed after %s attempts. Check reach, support blocks, inventory, and server permissions. Builder paused.",
-                        pos, attempt.attempts
-                );
             }
         }
-        return null;
+    }
+
+    private boolean isPlacementAttemptExhausted(BlockPos pos, BlockState current, BlockState desired) {
+        PlacementAttempt attempt = placementAttempts.get(pos);
+        return attempt != null
+                && attempt.attempts >= MAX_PLACEMENT_ATTEMPTS
+                && builderTick >= attempt.retryAtTick
+                && current.equals(attempt.originalState)
+                && sameBlockstate(attempt.desiredState, desired);
     }
 
     private OptionalInt hasAnyItemThatWouldPlace(BlockState desired, HitResult result, Rotation rot) {
@@ -650,12 +651,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             };
         }
         BuilderCalculationContext bcc = new BuilderCalculationContext();
-        String placementFailure = unresolvedPlacementFailure(bcc);
-        if (placementFailure != null) {
-            logDirect(placementFailure);
-            paused = true;
-            return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
-        }
+        cleanupPlacementAttempts(bcc);
         if (!recalc(bcc)) {
             if (Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
                 logDirect("Starting layer " + layer);
@@ -890,6 +886,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private Goal assemble(BuilderCalculationContext bcc, List<BlockState> approxPlaceable, boolean logMissing) {
         List<BetterBlockPos> placeable = new ArrayList<>();
         List<BetterBlockPos> deferredForSupport = new ArrayList<>();
+        List<BetterBlockPos> deferredForPlacementFailure = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
         List<BetterBlockPos> sourceLiquids = new ArrayList<>();
         List<BetterBlockPos> flowingLiquids = new ArrayList<>();
@@ -902,7 +899,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 if (desired == null) {
                     outOfBounds.add(pos);
                 } else if (containsBlockState(approxPlaceable, desired)) {
-                    placeable.add(pos);
+                    if (isPlacementAttemptExhausted(pos, state, desired)) {
+                        deferredForPlacementFailure.add(pos);
+                    } else {
+                        placeable.add(pos);
+                    }
                 } else {
                     missing.put(desired, 1 + missing.getOrDefault(desired, 0));
                 }
@@ -944,6 +945,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return new JankyGoalComposite(new GoalComposite(toPlace.toArray(new Goal[0])), new GoalComposite(toBreak.toArray(new Goal[0])));
         }
         if (toBreak.isEmpty()) {
+            if (logMissing && !deferredForPlacementFailure.isEmpty()) {
+                String examples = deferredForPlacementFailure.stream()
+                        .limit(5)
+                        .map(p -> String.format("%s,%s,%s",
+                                SettingsUtil.maybeCensor(p.getX()),
+                                SettingsUtil.maybeCensor(p.getY()),
+                                SettingsUtil.maybeCensor(p.getZ())))
+                        .collect(Collectors.joining("; "));
+                logDirect("Placement was repeatedly rejected at " + examples
+                        + ". Check interaction reach, the support face, inventory, and server permissions.");
+            }
             if (logMissing && !deferredForSupport.isEmpty()) {
                 String examples = deferredForSupport.stream()
                         .limit(5)
