@@ -682,7 +682,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             outer:
             for (BlockState desired : desirableOnHotbar) {
                 for (int i = 0; i < 9; i++) {
-                    if (valid(approxPlaceable.get(i), desired, true)) {
+                    if (itemCouldPotentiallyPlace(approxPlaceable.get(i), desired)) {
                         usefulSlots.add(i);
                         continue outer;
                     }
@@ -693,7 +693,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             outer:
             for (int i = 9; i < 36; i++) {
                 for (BlockState desired : noValidHotbarOption) {
-                    if (valid(approxPlaceable.get(i), desired, true)) {
+                    if (itemCouldPotentiallyPlace(approxPlaceable.get(i), desired)) {
                         if (!baritone.getInventoryBehavior().attemptToPutOnHotbar(i, usefulSlots::contains)) {
                             // awaiting inventory move, so pause
                             return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
@@ -1125,19 +1125,22 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 result.add(Blocks.AIR.defaultBlockState());
                 continue;
             }
+            BlockItem blockItem = (BlockItem) stack.getItem();
+            BlockState fallbackState = blockItem.getBlock().defaultBlockState();
             try {
-                BlockState itemState = ((BlockItem) stack.getItem())
-                    .getBlock()
-                    .getStateForPlacement(
-                        new BlockPlaceContext(
-                            new UseOnContext(ctx.world(), ctx.player(), InteractionHand.MAIN_HAND, stack, new BlockHitResult(new Vec3(ctx.player().position().x, ctx.player().position().y, ctx.player().position().z), Direction.UP, ctx.playerFeet(), false)) {}
-                        )
-                    );
-                result.add(itemState != null ? itemState : Blocks.AIR.defaultBlockState());
+                BlockState itemState = blockItem.getBlock().getStateForPlacement(
+                    new BlockPlaceContext(
+                        new UseOnContext(ctx.world(), ctx.player(), InteractionHand.MAIN_HAND, stack,
+                                new BlockHitResult(new Vec3(ctx.player().position().x, ctx.player().position().y, ctx.player().position().z),
+                                        Direction.UP, ctx.playerFeet(), false)) {}
+                    )
+                );
+                // A null prediction at the player's current position does not mean this item is useless elsewhere.
+                result.add(itemState != null ? itemState : fallbackState);
             } catch (RuntimeException exception) {
-                // Approximate inventory analysis is advisory; an incompatible modded block should not stop building.
+                // This is advisory inventory analysis; retain the block identity even if its prediction throws.
                 logDebug("Unable to approximate placement for inventory slot " + i + ": " + exception);
-                result.add(Blocks.AIR.defaultBlockState());
+                result.add(fallbackState);
             }
         }
         return result;
@@ -1164,9 +1167,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return true;
     }
 
+    /**
+     * This list is only an inventory heuristic: facing, half, axis, and neighbor-derived properties
+     * can be chosen or updated at the eventual target. Exact state prediction happens in possibleToPlace.
+     */
+    static boolean itemCouldPotentiallyPlace(BlockState itemState, BlockState desired) {
+        return itemState != null && desired != null && itemState.getBlock() == desired.getBlock();
+    }
+
     private static boolean containsBlockState(Collection<BlockState> states, BlockState state) {
         for (BlockState testee : states) {
-            if (sameBlockstate(testee, state)) {
+            if (itemCouldPotentiallyPlace(testee, state)) {
                 return true;
             }
         }
