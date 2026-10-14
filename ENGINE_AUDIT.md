@@ -5,7 +5,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 ## Hands: placement and interaction
 
 ### Changes in the staged source
-1. Placement prediction restores the player's original yaw/pitch in a `finally` block if `BlockItem.getStateForPlacement` throws.
+1. Placement prediction restores the player's original yaw/pitch in `finally`; a runtime exception from a modded `BlockItem` is debug-logged and skipped rather than aborting the builder tick.
 2. Block-state property comparisons use `Objects.equals` instead of reference identity.
 3. Litematica region volume uses checked 64-bit multiplication, rejects zero-sized regions, and caps allocations at 8,388,608 blocks; signed region-end and region-offset arithmetic also reject integer wraparound.
 
