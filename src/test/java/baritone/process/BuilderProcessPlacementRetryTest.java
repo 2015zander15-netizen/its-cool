@@ -20,6 +20,7 @@ package baritone.process;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -69,6 +70,21 @@ public class BuilderProcessPlacementRetryTest {
                 Blocks.STONE.defaultBlockState(),
                 Blocks.OAK_STAIRS.defaultBlockState()
         ));
+    }
+
+    @Test
+    public void stateComparisonIgnoresWirePowerButKeepsFacing() {
+        BlockState unpoweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
+                .setValue(RedStoneWireBlock.POWER, 0);
+        BlockState poweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
+                .setValue(RedStoneWireBlock.POWER, 15);
+        BlockState northFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.NORTH);
+        BlockState eastFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.EAST);
+
+        assertTrue(BuilderProcess.sameBlockstate(unpoweredWire, poweredWire));
+        assertFalse(BuilderProcess.sameBlockstate(northFacing, eastFacing));
     }
 
     @Test
