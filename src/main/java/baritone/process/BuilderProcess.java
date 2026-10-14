@@ -123,12 +123,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static final class PlacementAttempt {
         private final BlockState originalState;
         private final BlockState desiredState;
+        private final BlockPos supportPos;
+        private final BlockState originalSupportState;
         private int attempts;
         private int retryAtTick;
 
-        private PlacementAttempt(BlockState originalState, BlockState desiredState) {
+        private PlacementAttempt(BlockState originalState, BlockState desiredState,
+                BlockPos supportPos, BlockState originalSupportState) {
             this.originalState = originalState;
             this.desiredState = desiredState;
+            this.supportPos = new BlockPos(supportPos);
+            this.originalSupportState = originalSupportState;
         }
     }
 
@@ -515,12 +520,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ((BlockHitResult) hit).getDirection() == expectedFace;
     }
 
-    private void recordPlacementAttempt(BlockPos target, BlockState desired) {
+    private void recordPlacementAttempt(BlockPos target, BlockState desired, BlockPos supportPos) {
         BlockState current = ctx.world().getBlockState(target);
+        BlockState supportState = ctx.world().getBlockState(supportPos);
         PlacementAttempt attempt = placementAttempts.get(target);
         if (attempt == null || !attempt.originalState.equals(current)
-                || !sameBlockstate(attempt.desiredState, desired)) {
-            attempt = new PlacementAttempt(current, desired);
+                || !sameBlockstate(attempt.desiredState, desired)
+                || !attempt.supportPos.equals(supportPos)
+                || !attempt.originalSupportState.equals(supportState)) {
+            attempt = new PlacementAttempt(current, desired, supportPos, supportState);
             placementAttempts.put(new BlockPos(target), attempt);
         }
         attempt.attempts++;
@@ -539,9 +547,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             PlacementAttempt attempt = entry.getValue();
             BlockState current = bcc.bsi.get0(pos);
             BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+            BlockState supportState = bcc.bsi.get0(attempt.supportPos);
 
             if (desired == null || !sameBlockstate(attempt.desiredState, desired) || valid(current, desired, false)
-                    || !current.equals(attempt.originalState)) {
+                    || !current.equals(attempt.originalState)
+                    || !supportState.equals(attempt.originalSupportState)) {
                 iterator.remove();
             }
         }
@@ -753,7 +763,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         bcc.bsi.get0(toPlace.get().target)
                 );
                 if (desired != null) {
-                    recordPlacementAttempt(toPlace.get().target, desired);
+                    recordPlacementAttempt(toPlace.get().target, desired, toPlace.get().placeAgainst);
                 }
             }
             lastRequestedGoal = null;
