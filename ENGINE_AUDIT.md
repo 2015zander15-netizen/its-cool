@@ -7,7 +7,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 ### Changes in the staged source
 1. Placement prediction restores the player's original yaw/pitch in a `finally` block if `BlockItem.getStateForPlacement` throws.
 2. Block-state property comparisons use `Objects.equals` instead of reference identity.
-3. Litematica region volume uses checked 64-bit multiplication and rejects dimensions/volumes the int-indexed decoder cannot safely represent.
+3. Litematica region volume uses checked 64-bit multiplication; signed region-end and region-offset arithmetic also reject integer wraparound.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
@@ -34,9 +34,9 @@ No broad pathfinding rewrite is included. Before changing movement heuristics, r
 4. Inventory: required blocks partly in main inventory, not hotbar.
 5. Unreachable support: builder gives a clear failure/pause rather than retrying an impossible placement indefinitely.
 6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
-7. Malformed/oversized Litematica region: reject invalid dimensions/volume cleanly.
+7. Malformed/oversized Litematica region: reject invalid dimensions/volume and overflowing signed region coordinates cleanly.
 8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
 ## Verification boundary
 
-The prior successful CI run tested the Litematica-only snapshot. The combined revision's own GitHub Actions run must finish with both tests and the Fabric remapped JAR build successful before that revision is called build-verified. CI cannot prove real-world placement correctness or calculator functionality; the in-game acceptance sequence above remains required.
+GitHub Actions runs unit tests and builds the Fabric remapped JAR against the upstream 1.21.11 Fabric branch with the staged Java files overlaid. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
