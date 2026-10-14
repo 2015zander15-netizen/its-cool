@@ -28,8 +28,9 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Restores the player's original yaw/pitch in `finally`; a runtime exception from a modded block's placement prediction is logged in debug mode and skipped so another hotbar candidate can be tried.
 - Guards the inventory-wide `approxPlaceable` scan and preserves the candidate block identity even if the local placement prediction returns null or throws.
 - Inventory estimates match candidate block type rather than the player's current facing or neighbor-derived properties; the exact target context is still checked before each placement.
-- Adds bounded placement retry/backoff: after five confirmed click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
-- Compares block-state property values with `Objects.equals`, not object identity.
+- Adds bounded placement retry/backoff: after five click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
+- Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
+- Requires the actual raycast to hit the intended support block and face before issuing a right-click.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
 
