@@ -125,6 +125,14 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void supportFacePointsFromSupportBackTowardTarget() {
+        for (Direction targetToSupport : Direction.values()) {
+            assertEquals(targetToSupport.getOpposite(),
+                    BuilderProcess.supportFaceForTargetDirection(targetToSupport));
+        }
+    }
+
+    @Test
     public void hitMustMatchExactSupportBlockAndFace() {
         BlockPos support = new BlockPos(1, 2, 3);
         HitResult matching = new BlockHitResult(new Vec3(1.5, 2.5, 3.5), Direction.UP, support, false);
