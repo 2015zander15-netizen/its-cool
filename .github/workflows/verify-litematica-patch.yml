@@ -1,5 +1,10 @@
 name: Verify Baritone engine fixes
 
+# Keep only the newest verification run for this branch active.
+concurrency:
+  group: verify-engine-fixes-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
