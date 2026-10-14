@@ -430,6 +430,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return Optional.empty();
     }
 
+    static boolean isAimedAtCorrectFace(HitResult hit, BlockPos expectedBlock, Direction expectedFace) {
+        return hit != null
+                && hit.getType() == HitResult.Type.BLOCK
+                && ((BlockHitResult) hit).getBlockPos().equals(expectedBlock)
+                && ((BlockHitResult) hit).getDirection() == expectedFace;
+    }
+
     private void recordPlacementAttempt(BlockPos target, BlockState desired) {
         BlockState current = ctx.world().getBlockState(target);
         PlacementAttempt attempt = placementAttempts.get(target);
@@ -663,12 +670,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             baritone.getLookBehavior().updateTarget(rot, true);
             ctx.player().getInventory().setSelectedSlot(toPlace.get().hotbarSelection);
             baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
-            HitResult currentHit = ctx.objectMouseOver();
-            boolean aimedAtCorrectFace = currentHit != null
-                    && currentHit.getType() == HitResult.Type.BLOCK
-                    && ((BlockHitResult) currentHit).getBlockPos().equals(toPlace.get().placeAgainst)
-                    && ((BlockHitResult) currentHit).getDirection() == toPlace.get().side;
-            if (aimedAtCorrectFace) {
+            if (isAimedAtCorrectFace(ctx.objectMouseOver(), toPlace.get().placeAgainst, toPlace.get().side)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
                 BlockState desired = bcc.getSchematic(
                         toPlace.get().target.getX(), toPlace.get().target.getY(), toPlace.get().target.getZ(),
