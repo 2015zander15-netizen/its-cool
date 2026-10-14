@@ -18,6 +18,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Uses checked 64-bit multiplication and rejects the `Integer.MIN_VALUE` dimension edge case.
 - Rejects volumes above the current int-indexed decode loop's supported range.
 - Reuses validated dimensions before region-array allocation.
+- Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
 
 ### Builder placement prediction safety
 `src/main/java/baritone/process/BuilderProcess.java`
@@ -31,11 +32,12 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-Each run clones the upstream branch, overlays both staged Java files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. The workflow uploads the source ZIP, patch, and any produced JARs.
+Each run clones the upstream branch, overlays both staged Java files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
+- `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source
+- `baritone-engine-fixes-patch.zip` — source diff against upstream
+- `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
-- A prior Litematica-only run passed tests and the remapped JAR build: https://github.com/2015zander15-netizen/its-cool/actions/runs/38574140718
-- The combined revision must be judged from its own completed run; the older run does not verify the later BuilderProcess edits.
-- Check the latest workflow run and its summary before calling the combined revision build-verified.
+Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. Always inspect the newest run's test/build summary before treating the newest source snapshot as build-verified. A successful compile/test run does not replace in-game placement, pathing, and redstone acceptance tests.
 
 ## Known unfinished work
 
