@@ -12,6 +12,7 @@ on:
       - "patches/0001-fix-litematica-volume-overflow.patch"
       - "src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java"
       - "src/main/java/baritone/process/BuilderProcess.java"
+      - "src/main/java/baritone/pathing/path/PathExecutor.java"
       - "src/test/java/baritone/utils/schematic/format/defaults/LitematicaSchematicSafetyTest.java"
       - "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
       - ".github/workflows/verify-litematica-patch.yml"
@@ -43,6 +44,8 @@ jobs:
           cp "$GITHUB_WORKSPACE/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java" "$target"
           builder="upstream/src/main/java/baritone/process/BuilderProcess.java"
           cp "$GITHUB_WORKSPACE/src/main/java/baritone/process/BuilderProcess.java" "$builder"
+          path_executor="upstream/src/main/java/baritone/pathing/path/PathExecutor.java"
+          cp "$GITHUB_WORKSPACE/src/main/java/baritone/pathing/path/PathExecutor.java" "$path_executor"
           test_sources=(
             "src/test/java/baritone/utils/schematic/format/defaults/LitematicaSchematicSafetyTest.java"
             "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
@@ -55,7 +58,7 @@ jobs:
             git -C upstream add -N "$test_source"
           done
           git -C upstream diff --check
-          git -C upstream diff -- src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java src/main/java/baritone/process/BuilderProcess.java "${test_sources[@]}" > "$GITHUB_WORKSPACE/artifacts/baritone-engine-fixes.patch"
+          git -C upstream diff -- src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java src/main/java/baritone/process/BuilderProcess.java src/main/java/baritone/pathing/path/PathExecutor.java "${test_sources[@]}" > "$GITHUB_WORKSPACE/artifacts/baritone-engine-fixes.patch"
 
       - name: Package patched full source
         shell: bash
