@@ -440,19 +440,22 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (shape.isEmpty()) {
                 continue;
             }
-            AABB aabb = shape.bounds();
-            for (Vec3 placementMultiplier : aabbSideMultipliers(against)) {
-                double placeX = placeAgainstPos.x + aabb.minX * placementMultiplier.x + aabb.maxX * (1 - placementMultiplier.x);
-                double placeY = placeAgainstPos.y + aabb.minY * placementMultiplier.y + aabb.maxY * (1 - placementMultiplier.y);
-                double placeZ = placeAgainstPos.z + aabb.minZ * placementMultiplier.z + aabb.maxZ * (1 - placementMultiplier.z);
-                Rotation rot = RotationUtils.calcRotationFromVec3d(RayTraceUtils.inferSneakingEyePosition(ctx.player()), new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
-                Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
-                HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
-                if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == against.getOpposite()) {
-                    OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
-                    if (hotbar.isPresent()) {
-                        return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
-                                placeAgainstPos, against.getOpposite(), rot));
+            // Sample each component box, not only the overall bounds: stairs and other partial shapes
+            // can have empty gaps inside their union bounding box.
+            for (AABB aabb : shape.toAabbs()) {
+                for (Vec3 placementMultiplier : aabbSideMultipliers(against)) {
+                    double placeX = placeAgainstPos.x + aabb.minX * placementMultiplier.x + aabb.maxX * (1 - placementMultiplier.x);
+                    double placeY = placeAgainstPos.y + aabb.minY * placementMultiplier.y + aabb.maxY * (1 - placementMultiplier.y);
+                    double placeZ = placeAgainstPos.z + aabb.minZ * placementMultiplier.z + aabb.maxZ * (1 - placementMultiplier.z);
+                    Rotation rot = RotationUtils.calcRotationFromVec3d(RayTraceUtils.inferSneakingEyePosition(ctx.player()), new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
+                    Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
+                    HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
+                    if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == against.getOpposite()) {
+                        OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
+                        if (hotbar.isPresent()) {
+                            return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
+                                    placeAgainstPos, against.getOpposite(), rot));
+                        }
                     }
                 }
             }
