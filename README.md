@@ -29,6 +29,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Guards the inventory-wide `approxPlaceable` scan and preserves the candidate block identity even if the local placement prediction returns null or throws.
 - Inventory estimates match candidate block type rather than the player's current facing or neighbor-derived properties; the exact target context is still checked before each placement.
 - Adds bounded placement retry/backoff: after five click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
+- Handles repeated path-calculation failures: it allows a retry when the goal changes, and pauses with troubleshooting hints after the same goal fails twice without movement or block progress.
 - Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
 - Requires the actual raycast to hit the intended support block and face before issuing a right-click.
 
