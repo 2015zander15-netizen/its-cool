@@ -113,6 +113,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private int numRepeats;
     private List<BlockState> approxPlaceable;
     private int builderTick;
+    private Goal lastRequestedGoal;
+    private int consecutivePathFailures;
     private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
     public int stopAtHeight = 0;
 
@@ -126,6 +128,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             this.originalState = originalState;
             this.desiredState = desiredState;
         }
+    }
+
+    static int nextGoalPathFailureCount(boolean calcFailed, Goal previousGoal, Goal currentGoal, int previousCount) {
+        if (!calcFailed) {
+            return 0;
+        }
+        return previousGoal != null && previousGoal.equals(currentGoal) ? previousCount + 1 : 1;
     }
 
     static int placementRetryDelayTicks(int attemptNumber) {
@@ -144,6 +153,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void build(String name, ISchematic schematic, Vec3i origin) {
         placementAttempts.clear();
         builderTick = 0;
+        lastRequestedGoal = null;
+        consecutivePathFailures = 0;
         this.name = name;
         this.schematic = schematic;
         this.realSchematic = null;
@@ -666,6 +677,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (ctx.isLookingAt(pos) || ctx.playerRotations().isReallyCloseTo(rot)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_LEFT, true);
             }
+            lastRequestedGoal = null;
+            consecutivePathFailures = 0;
             return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
         }
         List<BlockState> desirableOnHotbar = new ArrayList<>();
@@ -685,6 +698,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     recordPlacementAttempt(toPlace.get().target, desired);
                 }
             }
+            lastRequestedGoal = null;
+            consecutivePathFailures = 0;
             return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
         }
 
@@ -730,6 +745,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
             }
         }
+        consecutivePathFailures = nextGoalPathFailureCount(
+                calcFailed, lastRequestedGoal, goal, consecutivePathFailures
+        );
+        if (consecutivePathFailures >= 2) {
+            logDirect("No path to the remaining build placements after repeated attempts. Builder paused; check obstacles, reachability, and required support blocks.");
+            paused = true;
+            lastRequestedGoal = null;
+            consecutivePathFailures = 0;
+            return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
+        }
+        lastRequestedGoal = goal;
         return new PathingCommandContext(goal, PathingCommandType.FORCE_REVALIDATE_GOAL_AND_PATH, bcc);
     }
 
@@ -1098,6 +1124,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void onLostControl() {
         placementAttempts.clear();
         builderTick = 0;
+        lastRequestedGoal = null;
+        consecutivePathFailures = 0;
         incorrectPositions = null;
         name = null;
         schematic = null;
