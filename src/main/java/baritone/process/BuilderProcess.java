@@ -663,7 +663,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             baritone.getLookBehavior().updateTarget(rot, true);
             ctx.player().getInventory().setSelectedSlot(toPlace.get().hotbarSelection);
             baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
-            if ((ctx.isLookingAt(toPlace.get().placeAgainst) && ((BlockHitResult) ctx.objectMouseOver()).getDirection().equals(toPlace.get().side)) || ctx.playerRotations().isReallyCloseTo(rot)) {
+            HitResult currentHit = ctx.objectMouseOver();
+            boolean aimedAtCorrectFace = currentHit != null
+                    && currentHit.getType() == HitResult.Type.BLOCK
+                    && ((BlockHitResult) currentHit).getBlockPos().equals(toPlace.get().placeAgainst)
+                    && ((BlockHitResult) currentHit).getDirection() == toPlace.get().side;
+            if (aimedAtCorrectFace) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
                 BlockState desired = bcc.getSchematic(
                         toPlace.get().target.getX(), toPlace.get().target.getY(), toPlace.get().target.getZ(),
