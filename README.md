@@ -24,6 +24,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 `src/main/java/baritone/process/BuilderProcess.java`
 
 - Restores the player's original yaw/pitch in `finally`; a runtime exception from a modded block's placement prediction is logged in debug mode and skipped so another hotbar candidate can be tried.
+- Guards the inventory-wide `approxPlaceable` scan the same way, substituting AIR when a candidate's prediction throws so the heuristic cannot abort building.
 - Compares block-state property values with `Objects.equals`, not object identity.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
