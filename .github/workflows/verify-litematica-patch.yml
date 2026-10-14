@@ -49,13 +49,13 @@ jobs:
         id: tests
         continue-on-error: true
         working-directory: upstream
-        run: ./gradlew test --no-daemon
+        run: bash ./gradlew test --no-daemon
 
       - name: Build Fabric remapped JAR
         id: build
         continue-on-error: true
         working-directory: upstream
-        run: ./gradlew :fabric:remapJar --no-daemon
+        run: bash ./gradlew :fabric:remapJar --no-daemon
 
       - name: Upload patched full source ZIP
         if: always()
