@@ -33,7 +33,7 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-Each run clones the upstream branch, overlays both staged Java files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
+Each run clones the upstream branch, overlays the two staged main Java files and the schematic safety regression test, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
 - `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
