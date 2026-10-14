@@ -68,9 +68,13 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @return the lower coord of the requested axis.
      */
     private static int getMinOfSubregion(CompoundTag subReg, String s) {
-        int a = subReg.getCompoundOrEmpty("Position").getIntOr(s, 0);
-        int b = subReg.getCompoundOrEmpty("Size").getIntOr(s, 0);
-        return Math.min(a, a + b + 1);
+        int position = subReg.getCompoundOrEmpty("Position").getIntOr(s, 0);
+        int size = subReg.getCompoundOrEmpty("Size").getIntOr(s, 0);
+        long oppositeEnd = (long) position + size + 1L;
+        if (oppositeEnd < Integer.MIN_VALUE || oppositeEnd > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Litematica subregion coordinate overflows the int range on axis " + s);
+        }
+        return Math.min(position, (int) oppositeEnd);
     }
 
     /**
@@ -178,6 +182,17 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     }
 
     /**
+     * Converts an absolute coordinate into a schematic-local offset without allowing int wraparound.
+     */
+    private static int getCheckedOffset(int coordinate, int minimumCoordinate, String axis) {
+        long offset = (long) coordinate - minimumCoordinate;
+        if (offset < 0 || offset > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Litematica subregion offset is out of range on axis " + axis + ": " + offset);
+        }
+        return (int) offset;
+    }
+
+    /**
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
@@ -202,9 +217,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param bitArray  bit array that holds the placement pattern.
      */
     private void writeSubregionIntoSchematic(CompoundTag subReg, Vec3i offsetMinCorner, BlockState[] blockList, LitematicaBitArray bitArray) {
-        int offsetX = getMinOfSubregion(subReg, "x") - offsetMinCorner.getX();
-        int offsetY = getMinOfSubregion(subReg, "y") - offsetMinCorner.getY();
-        int offsetZ = getMinOfSubregion(subReg, "z") - offsetMinCorner.getZ();
+        int offsetX = getCheckedOffset(getMinOfSubregion(subReg, "x"), offsetMinCorner.getX(), "x");
+        int offsetY = getCheckedOffset(getMinOfSubregion(subReg, "y"), offsetMinCorner.getY(), "y");
+        int offsetZ = getCheckedOffset(getMinOfSubregion(subReg, "z"), offsetMinCorner.getZ(), "z");
         CompoundTag size = subReg.getCompoundOrEmpty("Size");
         int sizeX = getAbsoluteDimension(size, "x");
         int sizeY = getAbsoluteDimension(size, "y");
