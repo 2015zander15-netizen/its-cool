@@ -7,8 +7,8 @@ This is an evidence-based audit and test plan, not a claim that every building b
 ### Changes in the staged source
 1. Targeted placement prediction restores the player's original yaw/pitch in `finally`; a runtime exception from a modded `BlockItem` is debug-logged and skipped.
 2. The inventory-wide `approxPlaceable` scan retains a block's default state if local placement prediction returns null or throws. Inventory matching is by block type; exact target-context placement is verified separately.
-3. Failed placement clicks use increasing retry delays; after five attempts with no target-state change, the builder pauses with coordinates and troubleshooting hints.
-4. Block-state property comparisons use `Objects.equals` instead of reference identity.
+3. A placement click requires the real raycast to match the exact support block and face. Failed clicks use increasing retry delays; after five attempts with no target-state change, the builder pauses with coordinates and troubleshooting hints.
+4. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
 5. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
@@ -17,7 +17,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Face/raycast accuracy on partial collision shapes (slabs, stairs, fences, trapdoors, walls).
 - Direction-dependent placement (stairs, logs, repeaters, observers, pistons, dispensers).
 - Support dependencies and placement order (torches, rails, buttons, redstone components, plants).
-- Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update.
+- Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update; confirm the derived-state comparison does not hide missing connections in the acceptance circuit.
 - Inventory refill and slot selection when required items are in the main inventory rather than the hotbar.
 - Server rejection and delayed block updates still need in-game acceptance testing to tune retry behavior and false positives.
 - Fluids, environmental requirements, and block-entity contents; these need separate support work.
