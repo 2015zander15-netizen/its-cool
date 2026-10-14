@@ -16,7 +16,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 
 - Avoids multiplying three `int` dimensions before widening.
 - Uses checked 64-bit multiplication and rejects the `Integer.MIN_VALUE` dimension edge case.
-- Rejects volumes above the current int-indexed decode loop's supported range.
+- Rejects zero-sized regions and limits each decoded region to 8,388,608 blocks before allocating the 3D state array.
 - Reuses validated dimensions before region-array allocation.
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
 
