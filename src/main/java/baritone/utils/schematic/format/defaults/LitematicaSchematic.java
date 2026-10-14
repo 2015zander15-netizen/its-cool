@@ -104,6 +104,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             } catch (RuntimeException exception) {
                 throw new IllegalArgumentException("Invalid block identifier in Litematica palette: " + blockName, exception);
             }
+            if (!BuiltInRegistries.BLOCK.containsKey(blockId)) {
+                throw new IllegalArgumentException("Unknown block in Litematica palette: " + blockId);
+            }
             Block block = BuiltInRegistries.BLOCK.getValue(blockId);
             if (block == null) {
                 throw new IllegalArgumentException("Unknown block in Litematica palette: " + blockId);
@@ -224,7 +227,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     /**
      * Validates all region sizes and the aggregate memory budget before decoding any 3D arrays.
      */
-    private static void validateSchematicBudget(CompoundTag[] regions) {
+    static void validateSchematicBudget(CompoundTag[] regions) {
         if (regions.length == 0) {
             throw new IllegalArgumentException("Litematica schematic contains no regions");
         }
@@ -321,7 +324,13 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         for (int y = 0; y < sizeY; y++) {
             for (int z = 0; z < sizeZ; z++) {
                 for (int x = 0; x < sizeX; x++) {
-                    states[x][z][y] = blockList[bitArray.getAt(index)];
+                    int paletteIndex = bitArray.getAt(index);
+                    if (paletteIndex < 0 || paletteIndex >= blockList.length) {
+                        throw new IllegalArgumentException("Litematica BlockStates entry " + index
+                                + " references missing palette index " + paletteIndex
+                                + " (palette size " + blockList.length + ")");
+                    }
+                    states[x][z][y] = blockList[paletteIndex];
                     index++;
                 }
             }
