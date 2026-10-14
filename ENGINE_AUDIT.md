@@ -40,4 +40,4 @@ No broad pathfinding rewrite is included. Before changing movement heuristics, r
 
 ## Verification boundary
 
-GitHub Actions runs unit tests and builds the Fabric remapped JAR against the upstream 1.21.11 Fabric branch with the staged Java files overlaid. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
+GitHub Actions overlays the staged main source and schematic safety regression tests onto the upstream 1.21.11 Fabric branch, then runs unit tests and builds the Fabric remapped JAR. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
