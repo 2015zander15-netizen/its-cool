@@ -1251,26 +1251,45 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
      */
     static boolean isDerivedStateProperty(BlockState state, Property<?> property) {
         String propertyName = property.getName();
-        if (DYNAMIC_STATE_PROPERTIES.contains(propertyName)) {
+        String blockClass = state.getBlock().getClass().getSimpleName();
+        String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
+        if (DYNAMIC_STATE_PROPERTIES.contains(propertyName) && isRedstoneStateBlock(normalizedClass)) {
             return true;
         }
         if ("shape".equals(propertyName)
-                && (state.getBlock() instanceof StairBlock
-                || state.getBlock().getClass().getSimpleName().contains("Rail"))) {
+                && (state.getBlock() instanceof StairBlock || blockClass.contains("Rail"))) {
             return true;
         }
         if (!NEIGHBOR_CONNECTION_PROPERTIES.contains(propertyName)) {
             return false;
         }
-        String blockClass = state.getBlock().getClass().getSimpleName();
         return state.getBlock() instanceof PipeBlock
                 || blockClass.contains("Fence")
                 || blockClass.contains("Wall")
                 || blockClass.contains("Pane")
                 || blockClass.contains("Bars")
                 || blockClass.contains("Wire")
-                || blockClass.contains("Vine")
                 || blockClass.contains("ChorusPlant");
+    }
+
+    private static boolean isRedstoneStateBlock(String normalizedClass) {
+        return normalizedClass.contains("redstone")
+                || normalizedClass.contains("redstonewire")
+                || normalizedClass.contains("lever")
+                || normalizedClass.contains("button")
+                || normalizedClass.contains("pressureplate")
+                || normalizedClass.contains("pressure_plate")
+                || normalizedClass.contains("piston")
+                || normalizedClass.contains("observer")
+                || normalizedClass.contains("tripwire")
+                || normalizedClass.contains("rail")
+                || normalizedClass.contains("daylightdetector")
+                || normalizedClass.contains("targetblock")
+                || normalizedClass.contains("lightningrod")
+                || normalizedClass.contains("sculksensor")
+                || normalizedClass.contains("sculkshrieker")
+                || normalizedClass.contains("copperbulb")
+                || normalizedClass.contains("crafter");
     }
 
     static boolean sameBlockstate(BlockState first, BlockState second) {
