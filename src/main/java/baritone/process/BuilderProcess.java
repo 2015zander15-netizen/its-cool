@@ -493,8 +493,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == clickedFace) {
                         OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
                         if (hotbar.isPresent()) {
+                            // Store the aim-processor-adjusted rotation that was actually raycast-verified.
                             return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
-                                    placeAgainstPos, clickedFace, rot));
+                                    placeAgainstPos, clickedFace, actualRot));
                         }
                     }
                 }
