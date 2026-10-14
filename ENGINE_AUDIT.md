@@ -9,8 +9,8 @@ This is an evidence-based audit and test plan, not a claim that every building b
 2. The inventory-wide `approxPlaceable` scan retains a block's default state if local placement prediction returns null or throws. Inventory matching is by block type; exact target-context placement is verified separately.
 3. A placement click requires the real raycast to match the exact support block and face. Failed clicks use increasing retry delays; after five attempts with no target-state change, the builder pauses with coordinates and troubleshooting hints.
 4. Repeated path calculation failures are bounded; a changed goal can be tried once, but the same goal failing twice without player/block progress pauses with diagnostic guidance.
-4. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
-5. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
+5. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
+6. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
