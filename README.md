@@ -19,6 +19,8 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Rejects zero-sized regions and limits each decoded region to 8,388,608 blocks before allocating the 3D state array.
 - Reuses validated dimensions before region-array allocation.
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
+- Caps aggregate volume and nested column-array counts across all regions before allocating arrays.
+- Rejects empty/unknown block palettes, invalid palette indices, and truncated packed `BlockStates` arrays.
 
 ### Builder placement prediction safety
 `src/main/java/baritone/process/BuilderProcess.java`
@@ -38,7 +40,7 @@ Each run clones the upstream branch, overlays the two staged main Java files and
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
-Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. Always inspect the newest run's test/build summary before treating the newest source snapshot as build-verified. A successful compile/test run does not replace in-game placement, pathing, and redstone acceptance tests.
+Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. Recent combined source revisions have passed unit tests and the Fabric remapped JAR build. Always inspect the newest run's summary before using a new artifact. CI covers schematic loader safety and compile-time integration, not live block placement or redstone behavior.
 
 ## Known unfinished work
 
