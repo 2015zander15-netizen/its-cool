@@ -7,8 +7,9 @@ This is an evidence-based audit and test plan, not a claim that every building b
 ### Changes in the staged source
 1. Targeted placement prediction restores the player's original yaw/pitch in `finally`; a runtime exception from a modded `BlockItem` is debug-logged and skipped.
 2. The inventory-wide `approxPlaceable` scan substitutes AIR after a runtime exception, preserving the result-list shape instead of aborting the builder tick.
-3. Block-state property comparisons use `Objects.equals` instead of reference identity.
-4. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
+3. Failed placement clicks use increasing retry delays; after five attempts with no target-state change, the builder pauses with coordinates and troubleshooting hints.
+4. Block-state property comparisons use `Objects.equals` instead of reference identity.
+5. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
@@ -18,7 +19,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Support dependencies and placement order (torches, rails, buttons, redstone components, plants).
 - Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update.
 - Inventory refill and slot selection when required items are in the main inventory rather than the hotbar.
-- Server rejection, delayed block updates, and a bounded retry/backoff policy.
+- Server rejection and delayed block updates still need in-game acceptance testing to tune retry behavior and false positives.
 - Fluids, environmental requirements, and block-entity contents; these need separate support work.
 
 ## Feet: movement and reachability
