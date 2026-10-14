@@ -1107,13 +1107,26 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         boolean allowSameLevel = !(ctx.world().getBlockState(pos.above()).getBlock() instanceof AirBlock);
         BlockState current = ctx.world().getBlockState(pos);
-        for (Direction facing : Movement.HORIZONTALS_BUT_ALSO_DOWN_____SO_EVERY_DIRECTION_EXCEPT_UP) {
+        BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+        if (desired == null || !placementPlausible(pos, desired)) {
+            return new GoalPlace(pos);
+        }
+
+        List<Goal> approachGoals = new ArrayList<>();
+        for (Direction towardSupport : Movement.HORIZONTALS_BUT_ALSO_DOWN_____SO_EVERY_DIRECTION_EXCEPT_UP) {
+            BlockPos supportPos = pos.relative(towardSupport);
             //noinspection ConstantConditions
-            if (MovementHelper.canPlaceAgainst(ctx, pos.relative(facing)) && placementPlausible(pos, bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current))) {
-                return new GoalAdjacent(pos, pos.relative(facing), allowSameLevel);
+            if (MovementHelper.canPlaceAgainst(ctx, supportPos)) {
+                approachGoals.add(new GoalAdjacent(pos, supportPos, allowSameLevel));
             }
         }
-        return new GoalPlace(pos);
+        if (approachGoals.isEmpty()) {
+            return new GoalPlace(pos);
+        }
+        if (approachGoals.size() == 1) {
+            return approachGoals.get(0);
+        }
+        return new GoalComposite(approachGoals.toArray(new Goal[0]));
     }
 
     private Goal breakGoal(BlockPos pos, BuilderCalculationContext bcc) {
