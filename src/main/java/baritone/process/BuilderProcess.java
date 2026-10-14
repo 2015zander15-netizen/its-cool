@@ -424,8 +424,33 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     public boolean placementPlausible(BlockPos pos, BlockState state) {
-        VoxelShape voxelshape = state.getCollisionShape(ctx.world(), pos);
-        return voxelshape.isEmpty() || ctx.world().isUnobstructed(null, voxelshape.move(pos.getX(), pos.getY(), pos.getZ()));
+        try {
+            VoxelShape voxelshape = state.getCollisionShape(ctx.world(), pos);
+            return voxelshape.isEmpty() || ctx.world().isUnobstructed(
+                    null, voxelshape.move(pos.getX(), pos.getY(), pos.getZ())
+            );
+        } catch (RuntimeException exception) {
+            logDebug("Unable to check placement collision at " + pos + " for " + state + ": " + exception);
+            return false;
+        }
+    }
+
+    private VoxelShape getOutlineShapeOrNull(BlockState state, BlockPos pos) {
+        try {
+            return state.getShape(ctx.world(), pos);
+        } catch (RuntimeException exception) {
+            logDebug("Unable to inspect support shape at " + pos + " for " + state + ": " + exception);
+            return null;
+        }
+    }
+
+    private List<AABB> getShapeBoxesOrEmpty(VoxelShape shape, BlockPos supportPos) {
+        try {
+            return shape.toAabbs();
+        } catch (RuntimeException exception) {
+            logDebug("Unable to inspect support collision boxes at " + supportPos + ": " + exception);
+            return Collections.emptyList();
+        }
     }
 
     private boolean canSurviveAt(BlockState state, BlockPos pos) {
@@ -450,13 +475,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (!placementPlausible(new BetterBlockPos(x, y, z), toPlace)) {
                 continue;
             }
-            VoxelShape shape = placeAgainstState.getShape(ctx.world(), placeAgainstPos);
-            if (shape.isEmpty()) {
+            VoxelShape shape = getOutlineShapeOrNull(placeAgainstState, placeAgainstPos);
+            if (shape == null || shape.isEmpty()) {
                 continue;
             }
             // Sample each component box, not only the overall bounds: stairs and other partial shapes
             // can have empty gaps inside their union bounding box.
-            for (AABB aabb : shape.toAabbs()) {
+            for (AABB aabb : getShapeBoxesOrEmpty(shape, placeAgainstPos)) {
                 for (Vec3 placementMultiplier : aabbSideMultipliers(against)) {
                     double placeX = placeAgainstPos.x + aabb.minX * placementMultiplier.x + aabb.maxX * (1 - placementMultiplier.x);
                     double placeY = placeAgainstPos.y + aabb.minY * placementMultiplier.y + aabb.maxY * (1 - placementMultiplier.y);
