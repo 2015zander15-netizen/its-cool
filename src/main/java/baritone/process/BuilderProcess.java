@@ -1033,20 +1033,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 result.add(Blocks.AIR.defaultBlockState());
                 continue;
             }
-            // <toxic cloud>
-            BlockState itemState = ((BlockItem) stack.getItem())
-                .getBlock()
-                .getStateForPlacement(
-                    new BlockPlaceContext(
-                        new UseOnContext(ctx.world(), ctx.player(), InteractionHand.MAIN_HAND, stack, new BlockHitResult(new Vec3(ctx.player().position().x, ctx.player().position().y, ctx.player().position().z), Direction.UP, ctx.playerFeet(), false)) {}
-                    )
-                );
-            if (itemState != null) {
-                result.add(itemState);
-            } else {
+            try {
+                BlockState itemState = ((BlockItem) stack.getItem())
+                    .getBlock()
+                    .getStateForPlacement(
+                        new BlockPlaceContext(
+                            new UseOnContext(ctx.world(), ctx.player(), InteractionHand.MAIN_HAND, stack, new BlockHitResult(new Vec3(ctx.player().position().x, ctx.player().position().y, ctx.player().position().z), Direction.UP, ctx.playerFeet(), false)) {}
+                        )
+                    );
+                result.add(itemState != null ? itemState : Blocks.AIR.defaultBlockState());
+            } catch (RuntimeException exception) {
+                // Approximate inventory analysis is advisory; an incompatible modded block should not stop building.
+                logDebug("Unable to approximate placement for inventory slot " + i + ": " + exception);
                 result.add(Blocks.AIR.defaultBlockState());
             }
-            // </toxic cloud>
         }
         return result;
     }
