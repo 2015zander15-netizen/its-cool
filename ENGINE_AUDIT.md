@@ -1,39 +1,42 @@
-# Builder engine audit: hands, feet, and verification
+# Builder engine audit: placement, movement, and acceptance tests
 
-This document records the initial evidence-based audit. It is a work plan, not a claim that all behavior is fixed.
+This is an evidence-based audit and test plan, not a claim that every building behavior is fixed.
 
 ## Hands: placement and interaction
 
-### Fixed in the staging snapshot
-1. Placement prediction now restores the player's original yaw and pitch in a `finally` block if `BlockItem.getStateForPlacement` throws. This prevents a failed prediction from leaving the player's view rotation altered.
-2. Block-state property comparisons now use `Objects.equals` instead of reference identity, so custom property values compare by value.
-3. Litematica region volume uses checked 64-bit multiplication and rejects dimensions/volumes the current decoder cannot safely index.
+### Changes in the staged source
+1. Placement prediction restores the player's original yaw/pitch in a `finally` block if `BlockItem.getStateForPlacement` throws.
+2. Block-state property comparisons use `Objects.equals` instead of reference identity.
+3. Litematica region volume uses checked 64-bit multiplication and rejects dimensions/volumes the int-indexed decoder cannot safely represent.
 
-### Remaining placement cases to verify in-game
+These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
+
+### Cases that still require acceptance tests
 - Face/raycast accuracy on partial collision shapes (slabs, stairs, fences, trapdoors, walls).
 - Direction-dependent placement (stairs, logs, repeaters, observers, pistons, dispensers).
-- Support dependencies (torches, rails, buttons, redstone components, plants) and ordering when a required support is also part of the schematic.
-- Neighbor-derived states (redstone-wire connections, fences, walls, panes) after surrounding blocks update.
-- Inventory refill and slot selection when desired blocks are outside the hotbar.
-- Server rejection, delayed block updates, and retry/backoff instead of repeatedly clicking a rejected placement.
-- Liquid/environment-dependent blocks and block entities are separate support work; they must not be claimed as complete.
+- Support dependencies and placement order (torches, rails, buttons, redstone components, plants).
+- Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update.
+- Inventory refill and slot selection when required items are in the main inventory rather than the hotbar.
+- Server rejection, delayed block updates, and a bounded retry/backoff policy.
+- Fluids, environmental requirements, and block-entity contents; these need separate support work.
 
 ## Feet: movement and reachability
 
-Inspected the BuilderProcess path from nearby placement search into schematic goal assembly and the PathExecutor movement loop. PathExecutor recalculates movement break/place/walk-into sets when the world changes, checks changed movement costs, and cancels when movements become impossible or take too long.
+The inspected BuilderProcess searches for nearby placements before assembling schematic goals. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out.
 
-No broad pathfinding algorithm rewrite is included yet. Before changing movement heuristics, capture a reproducible stuck case with start position, target placement, world blocks, selected movement, and log output. Changes to movement costs can affect safety and path quality across the entire game.
+No broad pathfinding rewrite is included. Before changing movement heuristics, record a reproducible stuck case: start position, target block, surrounding blocks, selected movement, and relevant log output. Movement-cost changes can affect general path quality and safety.
 
-## Acceptance tests to add or perform
+## Acceptance test sequence
 
-1. Small static structure: foundation, walls, stairs, doors, and torches.
+1. Static structure: foundation, walls, stairs, doors, and torches.
 2. Direction-sensitive blocks: logs, stairs, repeaters, observers, pistons.
-3. Redstone update test: two adjacent dust pieces, repeater line, and a lever/lamp output; wait for neighbor updates and verify output.
-4. Inventory test: required blocks partly in main inventory, not hotbar.
-5. Unreachable support test: builder pauses with a specific explanation instead of repeatedly attempting the same impossible placement.
-6. Pathing test: move to a placement vantage point around obstacles without mining support blocks or abandoning a fall/parkour movement unsafely.
-7. Large/malformed Litematica region test: reject invalid dimensions/volume with a clear error rather than integer overflow or allocation failure.
+3. Redstone updates: adjacent dust, a repeater line, and lever/lamp output; verify after neighbor updates.
+4. Inventory: required blocks partly in main inventory, not hotbar.
+5. Unreachable support: builder gives a clear failure/pause rather than retrying an impossible placement indefinitely.
+6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
+7. Malformed/oversized Litematica region: reject invalid dimensions/volume cleanly.
+8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
-## Current verification state
+## Verification boundary
 
-The Litematica-only revision has a successful CI run. The combined BuilderProcess revision is being tested by GitHub Actions. Do not treat the combined edits as verified until the latest run finishes successfully. Real in-game functional tests remain required.
+The prior successful CI run tested the Litematica-only snapshot. The combined revision's own GitHub Actions run must finish with both tests and the Fabric remapped JAR build successful before that revision is called build-verified. CI cannot prove real-world placement correctness or calculator functionality; the in-game acceptance sequence above remains required.
