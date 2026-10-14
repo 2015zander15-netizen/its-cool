@@ -25,9 +25,9 @@ These changes improve defensive behavior; they do not guarantee that every modde
 
 ## Feet: movement and reachability
 
-The inspected BuilderProcess searches for nearby placements before assembling schematic goals. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out.
+The inspected BuilderProcess searches for nearby placements before assembling schematic goals. It now offers a composite of valid support-side approach goals instead of selecting the first support side, and it bounds repeated path-calculation failures when the same goal makes no progress. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out. Off-path distance diagnostics now use Baritone debug logging instead of printing to standard output every tick.
 
-No broad pathfinding rewrite is included. Before changing movement heuristics, record a reproducible stuck case: start position, target block, surrounding blocks, selected movement, and relevant log output. Movement-cost changes can affect general path quality and safety.
+No broad pathfinding algorithm or movement-cost rewrite is included. Before changing those heuristics, record a reproducible stuck case: start position, target block, surrounding blocks, selected movement, and relevant log output. Movement-cost changes can affect general path quality and safety.
 
 ## Acceptance test sequence
 
