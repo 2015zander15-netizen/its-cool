@@ -46,6 +46,8 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
     private static final long MAX_REGION_VOLUME = 8_388_608L;
+    // BlockState[][][] allocates one leaf array per (x, z) column; cap their count too.
+    private static final long MAX_REGION_COLUMN_ARRAYS = 262_144L;
 
     /**
      * @param nbtTagCompound a decompressed file stream aka nbt data.
@@ -163,6 +165,17 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             throw new IllegalArgumentException("Litematica subregion exceeds the safe in-memory decoding limit: "
                     + volume + " blocks (maximum " + MAX_REGION_VOLUME + ")");
         }
+
+        final long columnArrays;
+        try {
+            columnArrays = Math.multiplyExact(x, z);
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException("Litematica column array count overflows a 64-bit integer", e);
+        }
+        if (columnArrays > MAX_REGION_COLUMN_ARRAYS) {
+            throw new IllegalArgumentException("Litematica subregion would allocate too many column arrays: "
+                    + columnArrays + " (maximum " + MAX_REGION_COLUMN_ARRAYS + ")");
+        }
         return volume;
     }
 
@@ -202,6 +215,18 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     }
 
     /**
+     * Validates that a local schematic offset plus its positive dimension remains representable.
+     * CompositeSchematic uses int addition when computing its overall extents.
+     */
+    static void validateExtent(int offset, int dimension, String axis) {
+        long end = (long) offset + dimension;
+        if (offset < 0 || dimension <= 0 || end > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Litematica subregion extent is out of range on axis " + axis
+                    + ": offset=" + offset + ", dimension=" + dimension);
+        }
+    }
+
+    /**
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
@@ -233,6 +258,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         int sizeX = getAbsoluteDimension(size, "x");
         int sizeY = getAbsoluteDimension(size, "y");
         int sizeZ = getAbsoluteDimension(size, "z");
+        validateExtent(offsetX, sizeX, "x");
+        validateExtent(offsetY, sizeY, "y");
+        validateExtent(offsetZ, sizeZ, "z");
         BlockState[][][] states = new BlockState[sizeX][sizeZ][sizeY];
         int index = 0;
         for (int y = 0; y < sizeY; y++) {
