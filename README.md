@@ -1,41 +1,60 @@
 # Baritone 1.21.11 development handoff
 
-This repository is a staging area for verified investigation notes and patch artifacts for the Baritone project. It is **not** a complete clone of the upstream project.
+This repository is a **staging branch/handoff**, not a replacement for the upstream Baritone repository. Changes are tested in a clean checkout of the upstream branch by GitHub Actions.
 
-## Upstream project
+## Upstream
 
 - Repository: https://github.com/Nevarielle/baritone-1.21.11
-- Inspected branch: `update/1.21.11-fabric`
-- Target file: `src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
-- Inspected source blob SHA: `0b40cd5700eb65fc8507995e7eaf64785cedc192`
+- Branch: `update/1.21.11-fabric`
+- Target game version: Minecraft 1.21.11 / Fabric
+- Java: 21
 
-## Current confirmed finding
+## Current staged changes
 
-The inspected `getVolume()` implementation multiplied three `int` dimensions before returning the result as a `long`. That can overflow before widening.
+### 1. Litematica volume overflow
 
-The proposed patch uses checked multiplication, rejects the `Integer.MIN_VALUE` dimension edge case, rejects volumes beyond the current int-indexed decode loop, and reuses the dimension helper when allocating the three-dimensional state array.
+File: `src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
 
-## Verification status
+- Avoids multiplying three `int` dimensions before widening.
+- Uses checked 64-bit multiplication.
+- Rejects the `Integer.MIN_VALUE` dimension edge case.
+- Rejects volumes larger than the current int-indexed decode loop can represent.
+- Reuses the same validated dimension helper when allocating the region array.
 
-- Source was inspected through the GitHub integration.
-- Proposed patch is saved under `patches/0001-fix-litematica-volume-overflow.patch`.
-- **Not yet applied to a complete local checkout.**
-- **Not compiled or test-verified.**
-- The Muse ZIP/patch links supplied in the conversation failed to download from the current execution environment. This repository therefore does not currently contain the complete Baritone project source.
-- BuilderProcess placement reliability and the long-term calculator construction/functional verification remain unfinished.
+### 2. Builder placement simulation cleanup
 
-## Apply and verify
+File: `src/main/java/baritone/process/BuilderProcess.java`
 
-From the root of a fresh clone of the upstream repository:
+- `hasAnyItemThatWouldPlace` temporarily adjusts player yaw/pitch to simulate orientation-sensitive placement.
+- The original code restored yaw/pitch only after `getStateForPlacement` returned normally.
+- The staged change uses `try/finally` so the player's real yaw/pitch are restored even if a modded `BlockItem` throws during placement simulation.
 
-```bash
-git switch update/1.21.11-fabric
-git switch -c fix/litematica-volume-overflow
-git apply --check /path/to/patches/0001-fix-litematica-volume-overflow.patch
-git apply /path/to/patches/0001-fix-litematica-volume-overflow.patch
-```
+This is a narrow defensive fix, not a full rewrite of placement logic. It does not yet solve every orientation, support, redstone update, inventory, or pathing issue.
 
-Use JDK 21, then run:
+## CI verification
+
+GitHub Actions workflow: [Verify Litematica overflow patch](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
+
+A successful run on the Litematica-only snapshot is available here:
+https://github.com/2015zander15-netizen/its-cool/actions/runs/38574140718
+
+That run passed unit tests and `./gradlew :fabric:remapJar` for the Litematica-only staged snapshot. It does **not** verify the later BuilderProcess change. A new run is triggered by the BuilderProcess update; check the latest workflow run for the combined result.
+
+The workflow packages the full upstream source checkout with the staged files overlaid, generates a patch from the actual diff, runs tests and builds the Fabric remapped JAR, and uploads ZIP artifacts.
+
+## What is still unfinished
+
+- Combined CI verification of the BuilderProcess change.
+- A systematic audit of placement mechanics: support blocks, reach/raycast, block placement context, orientation, neighbor-derived states, and server rejection/retry behavior.
+- A systematic movement/pathing audit for reaching placement positions without breaking supports or getting stuck.
+- Functional verification with real in-game builds, including a small known redstone circuit before attempting a 64-bit calculator.
+- Block-entity contents and other schematic features need separate format support review.
+
+Do not claim the calculator, redstone automation, farms, or a universal “fast-build” mode are complete. Normal placement rules, real inventory, supports, world updates, and server rules must remain respected.
+
+## Reproduce locally
+
+Clone upstream and apply the latest generated patch artifact from the Actions run, or use the full source ZIP artifact. Use Java 21:
 
 Windows:
 ```bat
@@ -44,7 +63,8 @@ gradlew.bat :fabric:remapJar
 
 Linux/macOS:
 ```bash
-./gradlew :fabric:remapJar
+bash ./gradlew test --no-daemon
+bash ./gradlew :fabric:remapJar --no-daemon
 ```
 
-Run the appropriate tests and record their actual results. Do not treat this patch as verified until it applies cleanly and the code is built and tested.
+Only report tests/builds as passing when the actual run confirms success.
