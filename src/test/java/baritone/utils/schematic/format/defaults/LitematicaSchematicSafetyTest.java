@@ -57,8 +57,8 @@ public class LitematicaSchematicSafetyTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsAggregateVolumeAcrossRegions() {
-        CompoundTag largeRegionA = region(2048, 2048, 2);
-        CompoundTag largeRegionB = region(2048, 2048, 2);
+        CompoundTag largeRegionA = region(512, 512, 20);
+        CompoundTag largeRegionB = region(512, 512, 20);
         LitematicaSchematic.validateSchematicBudget(new CompoundTag[]{largeRegionA, largeRegionB});
     }
 
