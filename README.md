@@ -31,7 +31,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Adds bounded placement retry/backoff: after five click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
 - Handles repeated path-calculation failures: it allows a retry when the goal changes, and pauses with troubleshooting hints after the same goal fails twice without movement or block progress.
 - Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
-- Requires the actual raycast to hit the intended support block and face before issuing a right-click.
+- Samples the support face facing toward the target (correctly reversing target-to-support direction) and requires the actual raycast to hit that exact support block and face before right-clicking.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
