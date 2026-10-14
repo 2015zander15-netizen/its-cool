@@ -220,11 +220,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         this.incorrectPositions = null;
     }
 
+    private void resetPathFailureTracking() {
+        lastRequestedGoal = null;
+        consecutivePathFailures = 0;
+        lastFailureObservedPlayerPos = null;
+        lastFailureIncorrectPositionsSize = 0;
+    }
+
     public void resume() {
+        resetPathFailureTracking();
         paused = false;
     }
 
     public void pause() {
+        resetPathFailureTracking();
         paused = true;
     }
 
@@ -727,7 +736,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 for (BlockState desired : noValidHotbarOption) {
                     if (itemCouldPotentiallyPlace(approxPlaceable.get(i), desired)) {
                         if (!baritone.getInventoryBehavior().attemptToPutOnHotbar(i, usefulSlots::contains)) {
-                            // awaiting inventory move, so pause
+                            // Inventory has to be moved before a useful placement is possible; don't carry a stale path failure across the move.
+                            resetPathFailureTracking();
                             return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
                         }
                         break outer;
