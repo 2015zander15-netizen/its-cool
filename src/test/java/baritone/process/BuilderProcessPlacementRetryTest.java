@@ -17,9 +17,15 @@
 
 package baritone.process;
 
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class BuilderProcessPlacementRetryTest {
 
@@ -41,4 +47,23 @@ public class BuilderProcessPlacementRetryTest {
     public void retryDelayRejectsZeroAttemptNumber() {
         BuilderProcess.placementRetryDelayTicks(0);
     }
+
+    @Test
+    public void inventoryHeuristicAcceptsDifferentOrientationsOfSameBlock() {
+        BlockState northFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.NORTH);
+        BlockState eastFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.EAST);
+
+        assertTrue(BuilderProcess.itemCouldPotentiallyPlace(northFacing, eastFacing));
+    }
+
+    @Test
+    public void inventoryHeuristicRejectsDifferentBlockTypes() {
+        assertFalse(BuilderProcess.itemCouldPotentiallyPlace(
+                Blocks.STONE.defaultBlockState(),
+                Blocks.OAK_STAIRS.defaultBlockState()
+        ));
+    }
+
 }
