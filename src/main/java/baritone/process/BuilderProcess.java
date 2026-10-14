@@ -465,6 +465,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private Optional<Placement> possibleToPlace(BlockState toPlace, int x, int y, int z, BlockStateInterface bsi) {
         for (Direction against : Direction.values()) {
             BetterBlockPos placeAgainstPos = new BetterBlockPos(x, y, z).relative(against);
+            // 'against' points from the target toward its support; the clicked face points back toward the target.
+            Direction clickedFace = supportFaceForTargetDirection(against);
             BlockState placeAgainstState = bsi.get0(placeAgainstPos);
             if (MovementHelper.isReplaceable(placeAgainstPos.x, placeAgainstPos.y, placeAgainstPos.z, placeAgainstState, bsi)) {
                 continue;
@@ -482,24 +484,28 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             // Sample each component box, not only the overall bounds: stairs and other partial shapes
             // can have empty gaps inside their union bounding box.
             for (AABB aabb : getShapeBoxesOrEmpty(shape, placeAgainstPos)) {
-                for (Vec3 placementMultiplier : aabbSideMultipliers(against)) {
+                for (Vec3 placementMultiplier : aabbSideMultipliers(clickedFace)) {
                     double placeX = placeAgainstPos.x + aabb.minX * placementMultiplier.x + aabb.maxX * (1 - placementMultiplier.x);
                     double placeY = placeAgainstPos.y + aabb.minY * placementMultiplier.y + aabb.maxY * (1 - placementMultiplier.y);
                     double placeZ = placeAgainstPos.z + aabb.minZ * placementMultiplier.z + aabb.maxZ * (1 - placementMultiplier.z);
                     Rotation rot = RotationUtils.calcRotationFromVec3d(RayTraceUtils.inferSneakingEyePosition(ctx.player()), new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
                     Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
                     HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
-                    if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == against.getOpposite()) {
+                    if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == clickedFace) {
                         OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
                         if (hotbar.isPresent()) {
                             return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
-                                    placeAgainstPos, against.getOpposite(), rot));
+                                    placeAgainstPos, clickedFace, rot));
                         }
                     }
                 }
             }
         }
         return Optional.empty();
+    }
+
+    static Direction supportFaceForTargetDirection(Direction targetToSupport) {
+        return targetToSupport.getOpposite();
     }
 
     static boolean isAimedAtCorrectFace(HitResult hit, BlockPos expectedBlock, Direction expectedFace) {
