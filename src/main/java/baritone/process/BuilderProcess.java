@@ -889,6 +889,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private Goal assemble(BuilderCalculationContext bcc, List<BlockState> approxPlaceable, boolean logMissing) {
         List<BetterBlockPos> placeable = new ArrayList<>();
+        List<BetterBlockPos> deferredForSupport = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
         List<BetterBlockPos> sourceLiquids = new ArrayList<>();
         List<BetterBlockPos> flowingLiquids = new ArrayList<>();
@@ -932,6 +933,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     pos.getX(), pos.getY(), pos.getZ(), bcc.bsi.get0(pos)
             );
             if (desired == null || !canSurviveAt(desired, pos)) {
+                deferredForSupport.add(pos);
                 return; // do not route to a dependent block until its support exists
             }
             toPlace.add(placementGoal(pos, bcc));
@@ -942,6 +944,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return new JankyGoalComposite(new GoalComposite(toPlace.toArray(new Goal[0])), new GoalComposite(toBreak.toArray(new Goal[0])));
         }
         if (toBreak.isEmpty()) {
+            if (logMissing && !deferredForSupport.isEmpty()) {
+                String examples = deferredForSupport.stream()
+                        .limit(5)
+                        .map(p -> String.format("%s,%s,%s",
+                                SettingsUtil.maybeCensor(p.getX()),
+                                SettingsUtil.maybeCensor(p.getY()),
+                                SettingsUtil.maybeCensor(p.getZ())))
+                        .collect(Collectors.joining("; "));
+                logDirect("Remaining blocks need support or their support could not be verified at: " + examples
+                        + ". Build the foundation/adjacent support first, or inspect the modded block's support rules.");
+            }
             if (logMissing && !missing.isEmpty()) {
                 logDirect("Missing materials for at least:");
                 logDirect(missing.entrySet().stream()
