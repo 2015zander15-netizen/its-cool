@@ -1187,7 +1187,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || blockClass.contains("ChorusPlant");
     }
 
-    private static boolean sameBlockstate(BlockState first, BlockState second) {
+    static boolean sameBlockstate(BlockState first, BlockState second) {
         if (first.getBlock() != second.getBlock()) {
             return false;
         }
@@ -1198,6 +1198,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         Map<Property<?>, Comparable<?>> map1 = first.getValues();
         Map<Property<?>, Comparable<?>> map2 = second.getValues();
+        if (!ignoreDirection && ignoredProps.isEmpty()) {
+            boolean hasDerivedProperties = false;
+            for (Property<?> property : map1.keySet()) {
+                if (isDerivedStateProperty(first, property)) {
+                    hasDerivedProperties = true;
+                    break;
+                }
+            }
+            if (!hasDerivedProperties) {
+                return first.equals(second);
+            }
+        }
         for (Property<?> prop : map1.keySet()) {
             if (!Objects.equals(map1.get(prop), map2.get(prop))
                     && !isDerivedStateProperty(first, prop)
