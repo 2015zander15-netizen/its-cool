@@ -43,6 +43,10 @@ import java.util.Optional;
  */
 public final class LitematicaSchematic extends CompositeSchematic implements IStaticSchematic {
 
+    // The decoder materializes a three-dimensional BlockState reference array.
+    // Keep malformed or enormous inputs from exhausting the client heap.
+    private static final long MAX_REGION_VOLUME = 8_388_608L;
+
     /**
      * @param nbtTagCompound a decompressed file stream aka nbt data.
      * @param rotated        if the schematic is rotated by 90°.
@@ -143,6 +147,10 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         long y = getAbsoluteDimension(size, "y");
         long z = getAbsoluteDimension(size, "z");
 
+        if (x == 0 || y == 0 || z == 0) {
+            throw new IllegalArgumentException("Litematica subregion must have non-zero dimensions");
+        }
+
         final long volume;
         try {
             volume = Math.multiplyExact(Math.multiplyExact(x, y), z);
@@ -150,9 +158,10 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             throw new IllegalArgumentException("Litematica subregion volume overflows a 64-bit integer", e);
         }
 
-        // The current decoding loop uses an int index, so larger volumes cannot be decoded safely.
-        if (volume > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Litematica subregion is too large to decode: " + volume + " blocks");
+        // The decoder materializes a 3D reference array, so an int-sized volume is not necessarily safe in memory.
+        if (volume > MAX_REGION_VOLUME) {
+            throw new IllegalArgumentException("Litematica subregion exceeds the safe in-memory decoding limit: "
+                    + volume + " blocks (maximum " + MAX_REGION_VOLUME + ")");
         }
         return volume;
     }
