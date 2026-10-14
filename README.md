@@ -1,63 +1,58 @@
 # Baritone 1.21.11 development handoff
 
-This repository is a **staging branch/handoff**, not a replacement for the upstream Baritone repository. Changes are tested in a clean checkout of the upstream branch by GitHub Actions.
+This repository is a **staging/handoff repository**, not a replacement for upstream Baritone. GitHub Actions clones the upstream branch and overlays the staged source changes before testing/building.
 
-## Upstream
+## Upstream target
 
 - Repository: https://github.com/Nevarielle/baritone-1.21.11
 - Branch: `update/1.21.11-fabric`
-- Target game version: Minecraft 1.21.11 / Fabric
+- Minecraft target: 1.21.11 / Fabric
 - Java: 21
 
-## Current staged changes
+## Staged code changes
 
-### 1. Litematica volume overflow
-
-File: `src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
+### Litematica volume safety
+`src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
 
 - Avoids multiplying three `int` dimensions before widening.
-- Uses checked 64-bit multiplication.
-- Rejects the `Integer.MIN_VALUE` dimension edge case.
-- Rejects volumes larger than the current int-indexed decode loop can represent.
-- Reuses the same validated dimension helper when allocating the region array.
+- Uses checked 64-bit multiplication and rejects the `Integer.MIN_VALUE` dimension edge case.
+- Rejects volumes above the current int-indexed decode loop's supported range.
+- Reuses validated dimensions before region-array allocation.
 
-### 2. Builder placement simulation cleanup
+### Builder placement prediction safety
+`src/main/java/baritone/process/BuilderProcess.java`
 
-File: `src/main/java/baritone/process/BuilderProcess.java`
+- Restores the player's original yaw/pitch in `finally` if orientation-sensitive placement prediction throws.
+- Compares block-state property values with `Objects.equals`, not object identity.
 
-- `hasAnyItemThatWouldPlace` temporarily adjusts player yaw/pitch to simulate orientation-sensitive placement.
-- The original code restored yaw/pitch only after `getStateForPlacement` returned normally.
-- The staged change uses `try/finally` so the player's real yaw/pitch are restored even if a modded `BlockItem` throws during placement simulation.
+These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
 
-This is a narrow defensive fix, not a full rewrite of placement logic. It does not yet solve every orientation, support, redstone update, inventory, or pathing issue.
+## Verification and artifacts
 
-## CI verification
+Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-GitHub Actions workflow: [Verify Litematica overflow patch](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
+Each run clones the upstream branch, overlays both staged Java files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. The workflow uploads the source ZIP, patch, and any produced JARs.
 
-A successful run on the Litematica-only snapshot is available here:
-https://github.com/2015zander15-netizen/its-cool/actions/runs/38574140718
+- A prior Litematica-only run passed tests and the remapped JAR build: https://github.com/2015zander15-netizen/its-cool/actions/runs/38574140718
+- The combined revision must be judged from its own completed run; the older run does not verify the later BuilderProcess edits.
+- Check the latest workflow run and its summary before calling the combined revision build-verified.
 
-That run passed unit tests and `./gradlew :fabric:remapJar` for the Litematica-only staged snapshot. It does **not** verify the later BuilderProcess change. A new run is triggered by the BuilderProcess update; check the latest workflow run for the combined result.
+## Known unfinished work
 
-The workflow packages the full upstream source checkout with the staged files overlaid, generates a patch from the actual diff, runs tests and builds the Fabric remapped JAR, and uploads ZIP artifacts.
+- In-game acceptance testing for orientation, supports, partial collision shapes, inventory refill, server-rejected placements, and neighbor-derived states.
+- A reproducible stuck-path case before changing movement/pathing heuristics.
+- Validation of block-entity NBT, inventories, fluids, and other schematic-format features.
+- A small redstone test circuit before attempting a 64-bit calculator.
 
-## What is still unfinished
+Do not claim a working calculator, automated farms, or universal fast-build mode is complete. No world-editing bypass is intended: building must use normal placement, actual inventory, support blocks, world updates, and server rules.
 
-- Combined CI verification of the BuilderProcess change.
-- A systematic audit of placement mechanics: support blocks, reach/raycast, block placement context, orientation, neighbor-derived states, and server rejection/retry behavior.
-- A systematic movement/pathing audit for reaching placement positions without breaking supports or getting stuck.
-- Functional verification with real in-game builds, including a small known redstone circuit before attempting a 64-bit calculator.
-- Block-entity contents and other schematic features need separate format support review.
+## Local build
 
-Do not claim the calculator, redstone automation, farms, or a universal “fast-build” mode are complete. Normal placement rules, real inventory, supports, world updates, and server rules must remain respected.
-
-## Reproduce locally
-
-Clone upstream and apply the latest generated patch artifact from the Actions run, or use the full source ZIP artifact. Use Java 21:
+Use Java 21.
 
 Windows:
 ```bat
+gradlew.bat test
 gradlew.bat :fabric:remapJar
 ```
 
@@ -67,4 +62,4 @@ bash ./gradlew test --no-daemon
 bash ./gradlew :fabric:remapJar --no-daemon
 ```
 
-Only report tests/builds as passing when the actual run confirms success.
+Only describe a test/build as passing when its actual result confirms success.
