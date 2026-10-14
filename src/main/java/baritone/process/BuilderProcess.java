@@ -96,6 +96,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     TrapDoorBlock.OPEN, TrapDoorBlock.HALF
             );
 
+    private static final Set<String> DYNAMIC_STATE_PROPERTIES =
+            ImmutableSet.of("power", "powered", "lit", "extended", "triggered");
+    private static final Set<String> NEIGHBOR_CONNECTION_PROPERTIES =
+            ImmutableSet.of("north", "east", "south", "west", "up");
+
     private HashSet<BetterBlockPos> incorrectPositions;
     private LongOpenHashSet observedCompleted; // positions that are completed even if they're out of render distance and we can't make sure right now
     private String name;
@@ -1153,6 +1158,35 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return result;
     }
 
+    /**
+     * These values are derived by redstone updates or neighboring blocks rather than selected
+     * reliably by a BlockItem's placement context. Treat them as runtime state during schematic
+     * comparison so powered circuitry is not broken merely because it is currently active.
+     */
+    static boolean isDerivedStateProperty(BlockState state, Property<?> property) {
+        String propertyName = property.getName();
+        if (DYNAMIC_STATE_PROPERTIES.contains(propertyName)) {
+            return true;
+        }
+        if ("shape".equals(propertyName)
+                && (state.getBlock() instanceof StairBlock
+                || state.getBlock().getClass().getSimpleName().contains("Rail"))) {
+            return true;
+        }
+        if (!NEIGHBOR_CONNECTION_PROPERTIES.contains(propertyName)) {
+            return false;
+        }
+        String blockClass = state.getBlock().getClass().getSimpleName();
+        return state.getBlock() instanceof PipeBlock
+                || blockClass.contains("Fence")
+                || blockClass.contains("Wall")
+                || blockClass.contains("Pane")
+                || blockClass.contains("Bars")
+                || blockClass.contains("Wire")
+                || blockClass.contains("Vine")
+                || blockClass.contains("ChorusPlant");
+    }
+
     private static boolean sameBlockstate(BlockState first, BlockState second) {
         if (first.getBlock() != second.getBlock()) {
             return false;
@@ -1166,6 +1200,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         Map<Property<?>, Comparable<?>> map2 = second.getValues();
         for (Property<?> prop : map1.keySet()) {
             if (!Objects.equals(map1.get(prop), map2.get(prop))
+                    && !isDerivedStateProperty(first, prop)
                     && !(ignoreDirection && ORIENTATION_PROPS.contains(prop))
                     && !ignoredProps.contains(prop.getName())) {
                 return false;
