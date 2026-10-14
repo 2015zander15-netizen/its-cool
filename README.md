@@ -28,11 +28,17 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Restores the player's original yaw/pitch in `finally`; a runtime exception from a modded block's placement prediction is logged in debug mode and skipped so another hotbar candidate can be tried.
 - Guards the inventory-wide `approxPlaceable` scan and preserves the candidate block identity even if the local placement prediction returns null or throws.
 - Inventory estimates match candidate block type rather than the player's current facing or neighbor-derived properties; the exact target context is still checked before each placement.
-- Adds bounded placement retry/backoff: after five click attempts with no target-state change, the builder pauses and reports the target coordinates instead of hammering the same placement indefinitely.
+- Adds bounded placement retry/backoff: after five click attempts with no target-state change, that target is deferred while other buildable work continues; failed coordinates are reported when no other useful goal remains.
 - Handles repeated path-calculation failures: it allows a retry when the goal changes, and pauses with troubleshooting hints after the same goal fails twice without movement or block progress.
 - Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
 - Samples the support face facing toward the target (correctly reversing target-to-support direction) and requires the actual raycast to hit that exact support block and face before right-clicking.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
+- Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
+
+### Path executor diagnostics
+`src/main/java/baritone/pathing/path/PathExecutor.java`
+
+- Sends repeated off-path distance messages through Baritone's debug logger instead of printing to standard output every tick.
 
 These are narrow defensive fixes. They are **not** a general rewrite of block placement, inventory management, redstone updates, or pathfinding.
 
@@ -40,7 +46,7 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-Each run clones the upstream branch, overlays the two staged main Java files and the schematic safety regression test, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
+Each run clones the upstream branch, overlays the staged Litematica loader, builder process, path executor, and both regression-test files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
 - `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source and tests
 
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
