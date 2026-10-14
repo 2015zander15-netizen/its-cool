@@ -107,11 +107,15 @@ public class BuilderProcessPlacementRetryTest {
         BlockState lever = Blocks.LEVER.defaultBlockState();
         BlockState stairs = Blocks.OAK_STAIRS.defaultBlockState();
         BlockState furnace = Blocks.FURNACE.defaultBlockState();
+        BlockState hopper = Blocks.HOPPER.defaultBlockState();
+        BlockState dispenser = Blocks.DISPENSER.defaultBlockState();
 
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "power")));
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "north")));
         assertTrue(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
         assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(hopper, property(hopper, "enabled")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(dispenser, property(dispenser, "triggered")));
         assertFalse(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "facing")));
         assertFalse(BuilderProcess.isDerivedStateProperty(furnace, property(furnace, "lit")));
     }
