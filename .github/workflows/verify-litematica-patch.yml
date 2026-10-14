@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "patches/0001-fix-litematica-volume-overflow.patch"
+      - "src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java"
       - ".github/workflows/verify-litematica-patch.yml"
   workflow_dispatch:
 
@@ -24,13 +25,16 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Retrieve upstream Baritone branch and apply patch
+      - name: Retrieve upstream and integrate proposed source change
         shell: bash
         run: |
           set -euo pipefail
           git clone --depth 1 --branch update/1.21.11-fabric https://github.com/Nevarielle/baritone-1.21.11.git upstream
-          git -C upstream apply --check "$GITHUB_WORKSPACE/patches/0001-fix-litematica-volume-overflow.patch"
-          git -C upstream apply "$GITHUB_WORKSPACE/patches/0001-fix-litematica-volume-overflow.patch"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+          target="upstream/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java"
+          cp "$GITHUB_WORKSPACE/src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java" "$target"
+          git -C upstream diff --check
+          git -C upstream diff -- src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java > "$GITHUB_WORKSPACE/artifacts/litematica-volume-overflow-verified.patch"
 
       - name: Package patched full source
         shell: bash
@@ -59,6 +63,15 @@ jobs:
         with:
           name: baritone-1.21.11-source-with-litematica-fix
           path: artifacts/baritone-1.21.11-source-with-litematica-fix.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload generated patch
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: litematica-volume-overflow-verified-patch
+          path: artifacts/litematica-volume-overflow-verified.patch
           if-no-files-found: warn
           retention-days: 30
 
