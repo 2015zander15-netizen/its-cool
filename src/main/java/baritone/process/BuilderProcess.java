@@ -651,7 +651,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (openProperty == null || poweredProperty == null
                 || ignoredProperties.contains(openProperty.getName())
                 || Objects.equals(current.getValues().get(openProperty), desired.getValues().get(openProperty))
-                || !Boolean.TRUE.equals(current.getValues().get(poweredProperty))) {
+                || (!Boolean.TRUE.equals(current.getValues().get(poweredProperty))
+                && !Boolean.TRUE.equals(desired.getValues().get(poweredProperty)))) {
             return false;
         }
 
