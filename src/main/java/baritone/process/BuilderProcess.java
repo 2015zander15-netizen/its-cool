@@ -1205,7 +1205,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     layer++;
                     incorrectPositions = null;
                     placementAttempts.clear();
-        placementApproachFailures.clear();
+                    placementApproachFailures.clear();
                     toggleAttempts.clear();
                     return onTick(calcFailed, isSafeToCancel, recursions + 1);
                 }
@@ -1246,7 +1246,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             incorrectPositions = null;
             deferredManualInteractionPositions.clear();
             placementAttempts.clear();
-        placementApproachFailures.clear();
+            placementApproachFailures.clear();
             toggleAttempts.clear();
             if (!Baritone.settings().buildRepeatSneaky.value) {
                 schematic.reset();
