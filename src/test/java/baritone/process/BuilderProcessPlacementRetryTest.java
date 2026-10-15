@@ -571,6 +571,18 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void playerBoundsOnlyBlockOverlappingPlacementTargets() {
+        AABB player = new AABB(0.2, 64.0, 0.2, 0.8, 65.8, 0.8);
+        BlockPos insideBody = new BlockPos(0, 65, 0);
+        BlockPos adjacentHeadHeightWall = new BlockPos(1, 65, 0);
+        BlockPos nextToBody = new BlockPos(-1, 64, 0);
+
+        assertTrue(BuilderProcess.targetIntersectsPlayerBounds(insideBody, player));
+        assertFalse(BuilderProcess.targetIntersectsPlayerBounds(adjacentHeadHeightWall, player));
+        assertFalse(BuilderProcess.targetIntersectsPlayerBounds(nextToBody, player));
+    }
+
+    @Test
     public void placementApproachSupportsAllSixAdjacentSides() {
         Direction[] directions = BuilderProcess.placementSupportDirections();
 
