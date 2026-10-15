@@ -250,14 +250,31 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         }
         long totalVolume = 0;
         long totalColumnArrays = 0;
+        int minimumX = getMinOfSchematic(regions, "x");
+        int minimumY = getMinOfSchematic(regions, "y");
+        int minimumZ = getMinOfSchematic(regions, "z");
+        long boundsX = 0;
+        long boundsY = 0;
+        long boundsZ = 0;
+
         for (CompoundTag subRegion : regions) {
             long volume = getVolume(subRegion);
             CompoundTag size = subRegion.getCompoundOrEmpty("Size");
             long x = getAbsoluteDimension(size, "x");
+            long y = getAbsoluteDimension(size, "y");
             long z = getAbsoluteDimension(size, "z");
+            int offsetX = getCheckedOffset(getMinOfSubregion(subRegion, "x"), minimumX, "x");
+            int offsetY = getCheckedOffset(getMinOfSubregion(subRegion, "y"), minimumY, "y");
+            int offsetZ = getCheckedOffset(getMinOfSubregion(subRegion, "z"), minimumZ, "z");
+            validateExtent(offsetX, (int) x, "x");
+            validateExtent(offsetY, (int) y, "y");
+            validateExtent(offsetZ, (int) z, "z");
             try {
                 totalVolume = Math.addExact(totalVolume, volume);
                 totalColumnArrays = Math.addExact(totalColumnArrays, Math.multiplyExact(x, z));
+                boundsX = Math.max(boundsX, Math.addExact((long) offsetX, x));
+                boundsY = Math.max(boundsY, Math.addExact((long) offsetY, y));
+                boundsZ = Math.max(boundsZ, Math.addExact((long) offsetZ, z));
             } catch (ArithmeticException exception) {
                 throw new IllegalArgumentException("Litematica schematic aggregate size overflows a 64-bit integer", exception);
             }
@@ -269,6 +286,17 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                 throw new IllegalArgumentException("Litematica schematic would allocate too many column arrays: "
                         + totalColumnArrays + " (maximum " + MAX_SCHEMATIC_COLUMN_ARRAYS + ")");
             }
+        }
+
+        final long boundsVolume;
+        try {
+            boundsVolume = Math.multiplyExact(Math.multiplyExact(boundsX, boundsY), boundsZ);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException("Litematica composite bounding-box volume overflows a 64-bit integer", exception);
+        }
+        if (boundsVolume > MAX_SCHEMATIC_VOLUME) {
+            throw new IllegalArgumentException("Litematica schematic's composite bounding box is too large to scan safely: "
+                    + boundsVolume + " blocks (maximum " + MAX_SCHEMATIC_VOLUME + ")");
         }
     }
 
