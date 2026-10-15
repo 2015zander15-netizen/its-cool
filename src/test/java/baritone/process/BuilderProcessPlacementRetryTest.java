@@ -382,11 +382,18 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
-    public void layerMaskIsDisabledForFinalManualInteractionPass() {
-        assertTrue(BuilderProcess.layerIncludesY(2, 0, 3, false));
-        assertFalse(BuilderProcess.layerIncludesY(5, 0, 3, false));
-        assertTrue(BuilderProcess.layerIncludesY(5, 0, 3, true));
-        assertTrue(BuilderProcess.layerIncludesY(0, 4, 7, true));
+    public void finalManualInteractionPassCoversBuiltLayersButNotUnbuiltLayers() {
+        assertTrue(BuilderProcess.isYIncludedInCurrentPass(2, 0, 3, false, 0, 3));
+        assertFalse(BuilderProcess.isYIncludedInCurrentPass(5, 0, 3, false, 0, 3));
+
+        // A final bottom-up pass covers all built layers, but honors a stop-height boundary.
+        assertTrue(BuilderProcess.isYIncludedInCurrentPass(2, 6, 8, true, 0, 8));
+        assertTrue(BuilderProcess.isYIncludedInCurrentPass(8, 6, 8, true, 0, 8));
+        assertFalse(BuilderProcess.isYIncludedInCurrentPass(9, 6, 8, true, 0, 8));
+
+        // A final top-down pass includes its completed upper range, not unbuilt lower layers.
+        assertTrue(BuilderProcess.isYIncludedInCurrentPass(7, 6, 8, true, 4, 8));
+        assertFalse(BuilderProcess.isYIncludedInCurrentPass(3, 6, 8, true, 4, 8));
     }
 
     @Test
