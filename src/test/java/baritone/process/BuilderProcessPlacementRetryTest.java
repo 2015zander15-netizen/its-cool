@@ -617,6 +617,7 @@ public class BuilderProcessPlacementRetryTest {
         assertFalse(BuilderProcess.isPotentialPlacementApproach(target, target));
         assertTrue(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(6, 64, 5)));
         assertTrue(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(5, 65, 5)));
+        assertFalse(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(5, 62, 5)));
         assertFalse(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(8, 64, 5)));
     }
 
