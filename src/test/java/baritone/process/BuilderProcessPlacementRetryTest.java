@@ -155,6 +155,22 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void poweredDoorFlagDoesNotPreventOpenStateInteraction() {
+        BlockState current = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, true)
+                .setValue(DoorBlock.POWERED, true);
+        BlockState desired = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, false)
+                .setValue(DoorBlock.POWERED, false);
+        BlockState poweredOnlyCurrent = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, false)
+                .setValue(DoorBlock.POWERED, true);
+
+        assertTrue(BuilderProcess.needsManualInteraction(current, desired));
+        assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired));
+    }
+
+    @Test
     public void leverPoweredStateUsesInteractionAndOrientationMismatchDoesNot() {
         BlockState unpoweredLever = Blocks.LEVER.defaultBlockState().setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
         BlockState poweredLever = Blocks.LEVER.defaultBlockState().setValue(net.minecraft.world.level.block.LeverBlock.POWERED, true);
