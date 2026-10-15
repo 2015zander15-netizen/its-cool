@@ -129,7 +129,12 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
         BlockState[] blockList = new BlockState[blockStatePalette.size()];
         for (int i = 0; i < blockStatePalette.size(); i++) {
-            CompoundTag paletteEntry = (CompoundTag) blockStatePalette.get(i);
+            Object entry = blockStatePalette.get(i);
+            if (!(entry instanceof CompoundTag)) {
+                throw new IllegalArgumentException("Litematica block-state palette entry " + i
+                        + " is not a compound tag");
+            }
+            CompoundTag paletteEntry = (CompoundTag) entry;
             String blockName = paletteEntry.getStringOr("Name", "");
             final Identifier blockId;
             try {
