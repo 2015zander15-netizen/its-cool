@@ -67,6 +67,21 @@ public class LitematicaSchematicSafetyTest {
         LitematicaSchematic.validateSchematicBudget(new CompoundTag[0]);
     }
 
+    @Test
+    public void acceptsRegionCountAtLimit() {
+        assertEquals(4_096, LitematicaSchematic.validateRegionCount(4_096));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsTooManyRegions() {
+        LitematicaSchematic.validateRegionCount(4_097);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsZeroRegions() {
+        LitematicaSchematic.validateRegionCount(0);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsEmptyBlockPalette() {
         LitematicaSchematic.getBlockList(new ListTag());
