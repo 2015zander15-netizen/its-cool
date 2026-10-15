@@ -18,7 +18,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
 ### Cases that still require acceptance tests
-- Face/raycast accuracy on partial collision shapes (slabs, stairs, fences, trapdoors, walls).
+- Face/raycast accuracy on partial collision shapes (slabs, stairs, fences, trapdoors, walls), including whether the failed-approach exclusion improves recovery without hiding genuinely reachable placements.
 - Direction-dependent placement (stairs, logs, repeaters, observers, pistons, dispensers).
 - Support dependencies and placement order (torches, rails, buttons, redstone components, plants); the builder now defers goals until `canSurvive` succeeds, but this still needs acceptance testing.
 - Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update; confirm the derived-state comparison does not hide missing connections in the acceptance circuit.
@@ -29,7 +29,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 
 ## Feet: movement and reachability
 
-The inspected BuilderProcess searches for nearby placements before assembling schematic goals. It now offers a composite of valid support-side approach goals instead of selecting the first support side, and it bounds repeated path-calculation failures when the same goal makes no progress. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out. Off-path distance and movement-recalculation timing diagnostics now use Baritone debug logging instead of printing to standard output.
+The inspected BuilderProcess searches for nearby placements before assembling schematic goals. It now uses a placement-approach goal that excludes positions where a compatible hotbar item previously failed to find a valid placement face; these exclusions reset when the target or adjacent support states change. Nearby targets are skipped only when their unit AABB intersects the player's actual bounding box. Repeated path-calculation failures are also bounded when the same goal makes no progress. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out. Off-path distance and movement-recalculation timing diagnostics now use Baritone debug logging instead of printing to standard output.
 
 No broad pathfinding algorithm or movement-cost rewrite is included. Before changing those heuristics, record a reproducible stuck case: start position, target block, surrounding blocks, selected movement, and relevant log output. Movement-cost changes can affect general path quality and safety.
 
