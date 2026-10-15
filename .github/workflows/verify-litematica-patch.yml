@@ -13,6 +13,7 @@ on:
       - "src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java"
       - "src/main/java/baritone/process/BuilderProcess.java"
       - "src/main/java/baritone/behavior/InventoryBehavior.java"
+      - "src/main/java/baritone/pathing/movement/MovementHelper.java"
       - "src/main/java/baritone/pathing/path/PathExecutor.java"
       - "src/test/java/baritone/utils/schematic/format/defaults/LitematicaSchematicSafetyTest.java"
       - "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
@@ -48,6 +49,8 @@ jobs:
           cp "$GITHUB_WORKSPACE/src/main/java/baritone/process/BuilderProcess.java" "$builder"
           inventory="upstream/src/main/java/baritone/behavior/InventoryBehavior.java"
           cp "$GITHUB_WORKSPACE/src/main/java/baritone/behavior/InventoryBehavior.java" "$inventory"
+          movement_helper="upstream/src/main/java/baritone/pathing/movement/MovementHelper.java"
+          cp "$GITHUB_WORKSPACE/src/main/java/baritone/pathing/movement/MovementHelper.java" "$movement_helper"
           path_executor="upstream/src/main/java/baritone/pathing/path/PathExecutor.java"
           cp "$GITHUB_WORKSPACE/src/main/java/baritone/pathing/path/PathExecutor.java" "$path_executor"
           test_sources=(
@@ -63,7 +66,7 @@ jobs:
             git -C upstream add -N "$test_source"
           done
           git -C upstream diff --check
-          git -C upstream diff -- src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java src/main/java/baritone/process/BuilderProcess.java src/main/java/baritone/behavior/InventoryBehavior.java src/main/java/baritone/pathing/path/PathExecutor.java "${test_sources[@]}" > "$GITHUB_WORKSPACE/artifacts/baritone-engine-fixes.patch"
+          git -C upstream diff -- src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java src/main/java/baritone/process/BuilderProcess.java src/main/java/baritone/behavior/InventoryBehavior.java src/main/java/baritone/pathing/movement/MovementHelper.java src/main/java/baritone/pathing/path/PathExecutor.java "${test_sources[@]}" > "$GITHUB_WORKSPACE/artifacts/baritone-engine-fixes.patch"
 
       - name: Package patched full source
         shell: bash
