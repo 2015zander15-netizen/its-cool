@@ -1090,8 +1090,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             trim();
         }
 
+        boolean noStructuralWork = manualInteractionPhase && canBeginManualInteractions(bcc);
         Optional<Tuple<BetterBlockPos, Rotation>> toToggle =
-                manualInteractionsAllowed(manualInteractionPhase, canBeginManualInteractions(bcc))
+                manualInteractionsAllowed(manualInteractionPhase, noStructuralWork)
                         ? toToggleNearPlayer(bcc)
                         : Optional.empty();
         if (toToggle.isPresent() && isSafeToCancel && ctx.player().onGround()) {
