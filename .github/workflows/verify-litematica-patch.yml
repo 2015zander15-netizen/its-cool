@@ -76,9 +76,10 @@ jobs:
 
       - name: Run tests
         id: tests
+        timeout-minutes: 10
         continue-on-error: true
         working-directory: upstream
-        run: bash ./gradlew test --no-daemon
+        run: bash ./gradlew test --no-daemon --console=plain
 
       - name: Print test failure details
         if: always()
@@ -113,9 +114,10 @@ jobs:
 
       - name: Build Fabric remapped JAR
         id: build
+        timeout-minutes: 10
         continue-on-error: true
         working-directory: upstream
-        run: bash ./gradlew :fabric:remapJar --no-daemon
+        run: bash ./gradlew :fabric:remapJar --no-daemon --console=plain
 
       - name: Upload patched full source ZIP
         if: always()
