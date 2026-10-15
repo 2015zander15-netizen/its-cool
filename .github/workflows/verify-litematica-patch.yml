@@ -28,6 +28,7 @@ permissions:
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout patch handoff repository
         uses: actions/checkout@v4
