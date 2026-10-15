@@ -60,6 +60,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -106,7 +107,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static final Set<String> DYNAMIC_STATE_PROPERTIES =
             ImmutableSet.of("power", "powered", "lit", "extended", "triggered", "enabled");
     private static final Set<String> NEIGHBOR_CONNECTION_PROPERTIES =
-            ImmutableSet.of("north", "east", "south", "west", "up");
+            ImmutableSet.of("north", "east", "south", "west", "up", "down");
 
     private HashSet<BetterBlockPos> incorrectPositions;
     private LongOpenHashSet observedCompleted; // positions that are completed even if they're out of render distance and we can't make sure right now
@@ -1622,6 +1623,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if ("powered".equals(propertyName) && state.getBlock() instanceof LeverBlock) {
             return false; // lever state is selected by player interaction, not circuit power alone
         }
+        if (state.getBlock() instanceof ChestBlock && "type".equals(propertyName)) {
+            return true; // single/left/right chest state is derived from neighboring chests
+        }
         if (state.getBlock() instanceof NoteBlock
                 && ("instrument".equals(propertyName) || "powered".equals(propertyName))) {
             return true; // instrument follows the block below; powered follows a redstone signal
@@ -1642,6 +1646,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || blockClass.contains("Pane")
                 || blockClass.contains("Bars")
                 || blockClass.contains("Wire")
+                || blockClass.contains("Vine")
                 || blockClass.contains("ChorusPlant");
     }
 
