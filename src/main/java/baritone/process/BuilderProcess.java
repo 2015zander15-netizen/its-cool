@@ -460,11 +460,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         if (dy == 1 && bcc.bsi.get0(x, y + 1, z).getBlock() instanceof AirBlock) {
                             continue;
                         }
-                        desirableOnHotbar.add(desired);
-                        PlacementAttempt priorAttempt = placementAttempts.get(target);
-                        if (priorAttempt != null && builderTick < priorAttempt.retryAtTick) {
+                        if (isPlacementAttemptWaiting(target, curr, desired)) {
                             continue;
                         }
+                        desirableOnHotbar.add(desired);
                         Optional<Placement> opt = possibleToPlace(desired, x, y, z, bcc.bsi);
                         if (opt.isPresent()) {
                             return opt;
@@ -694,6 +693,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 iterator.remove();
             }
         }
+    }
+
+    private boolean isPlacementAttemptWaiting(BlockPos pos, BlockState current, BlockState desired) {
+        PlacementAttempt attempt = placementAttempts.get(pos);
+        return attempt != null
+                && builderTick < attempt.retryAtTick
+                && current.equals(attempt.originalState)
+                && sameBlockstate(attempt.desiredState, desired)
+                && ctx.world().getBlockState(attempt.supportPos).equals(attempt.originalSupportState);
     }
 
     private boolean isPlacementAttemptExhausted(BlockPos pos, BlockState current, BlockState desired) {
@@ -1097,6 +1105,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<BetterBlockPos> interactable = new ArrayList<>();
         List<BetterBlockPos> deferredForSupport = new ArrayList<>();
         List<BetterBlockPos> deferredForPlacementFailure = new ArrayList<>();
+        List<BetterBlockPos> waitingForPlacementRetry = new ArrayList<>();
         List<BetterBlockPos> waitingForInteractionRetry = new ArrayList<>();
         List<BetterBlockPos> deferredForInteraction = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
@@ -1113,6 +1122,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 } else if (containsBlockState(approxPlaceable, desired)) {
                     if (isPlacementAttemptExhausted(pos, state, desired)) {
                         deferredForPlacementFailure.add(pos);
+                    } else if (isPlacementAttemptWaiting(pos, state, desired)) {
+                        waitingForPlacementRetry.add(pos);
                     } else {
                         placeable.add(pos);
                     }
@@ -1213,10 +1224,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         .map(p -> String.format("%s %s %s", p.x, p.y, p.z))
                         .collect(Collectors.joining("\n")));
             }
-            if (!waitingForInteractionRetry.isEmpty()) {
-                return new GoalComposite(waitingForInteractionRetry.stream()
-                        .map(GoalGetToBlock::new)
-                        .toArray(Goal[]::new));
+            if (!waitingForPlacementRetry.isEmpty() || !waitingForInteractionRetry.isEmpty()) {
+                List<Goal> waitGoals = new ArrayList<>();
+                waitingForPlacementRetry.forEach(pos -> waitGoals.add(new GoalGetToBlock(pos)));
+                waitingForInteractionRetry.forEach(pos -> waitGoals.add(new GoalGetToBlock(pos)));
+                return new GoalComposite(waitGoals.toArray(new Goal[0]));
             }
             return null;
         }
