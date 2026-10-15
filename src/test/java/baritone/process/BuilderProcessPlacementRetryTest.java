@@ -21,6 +21,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
@@ -123,7 +124,7 @@ public class BuilderProcessPlacementRetryTest {
 
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "power")));
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "north")));
-        assertTrue(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
+        assertFalse(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
         assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
         assertTrue(BuilderProcess.isDerivedStateProperty(hopper, property(hopper, "enabled")));
         assertTrue(BuilderProcess.isDerivedStateProperty(dispenser, property(dispenser, "triggered")));
@@ -145,9 +146,12 @@ public class BuilderProcessPlacementRetryTest {
         BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
         BlockState closedTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
         BlockState openTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
+        BlockState closedGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, false);
+        BlockState openGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, true);
 
         assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor));
         assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor));
+        assertTrue(BuilderProcess.needsManualInteraction(closedGate, openGate));
     }
 
     @Test
