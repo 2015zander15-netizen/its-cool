@@ -22,6 +22,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.DaylightDetectorBlock;
+import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
@@ -137,6 +139,18 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @SuppressWarnings("unchecked")
+    private static <T extends Comparable<T>> BlockState withProperty(BlockState state, String name, String stringValue) {
+        Property<T> property = (Property<T>) state.getBlock().getStateDefinition().getProperty(name);
+        if (property == null) {
+            throw new AssertionError("Expected property " + name + " on " + state.getBlock());
+        }
+        T value = property.getValue(stringValue).orElseThrow(
+                () -> new AssertionError("Invalid test value " + stringValue + " for " + name)
+        );
+        return state.setValue(property, value);
+    }
+
+    @SuppressWarnings("unchecked")
     private static BlockState withBooleanProperty(BlockState state, String name, boolean value) {
         Property<Boolean> property = (Property<Boolean>) state.getBlock().getStateDefinition().getProperty(name);
         if (property == null) {
@@ -210,6 +224,21 @@ public class BuilderProcessPlacementRetryTest {
 
         assertTrue(BuilderProcess.needsManualInteraction(current, desired));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired));
+    }
+
+    @Test
+    public void noteBlockPitchAndDaylightInversionUseInteractions() {
+        BlockState note0 = withProperty(Blocks.NOTE_BLOCK.defaultBlockState(), "note", "0");
+        BlockState note5 = withProperty(Blocks.NOTE_BLOCK.defaultBlockState(), "note", "5");
+        BlockState daylightNormal = Blocks.DAYLIGHT_DETECTOR.defaultBlockState()
+                .setValue(DaylightDetectorBlock.INVERTED, false);
+        BlockState daylightInverted = Blocks.DAYLIGHT_DETECTOR.defaultBlockState()
+                .setValue(DaylightDetectorBlock.INVERTED, true);
+
+        assertTrue(BuilderProcess.needsManualInteraction(note0, note5));
+        assertTrue(BuilderProcess.needsManualInteraction(daylightNormal, daylightInverted));
+        assertTrue(BuilderProcess.isDerivedStateProperty(note5, property(note5, "instrument")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(note5, property(note5, "powered")));
     }
 
     @Test
