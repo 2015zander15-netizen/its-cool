@@ -112,10 +112,11 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         if (paletteSize <= 0) {
             throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
         }
-        if (regionVolume <= 0 || paletteSize > regionVolume) {
-            throw new IllegalArgumentException("Litematica palette has " + paletteSize
-                    + " entries but region volume is " + regionVolume);
+        if (regionVolume <= 0) {
+            throw new IllegalArgumentException("Litematica palette cannot be used with a non-positive region volume");
         }
+        // Litematica can retain stale/unused palette entries after schematic edit operations.
+        // Do not assume every palette entry is referenced by the current region's packed data.
         if (paletteSize > MAX_PALETTE_ENTRIES) {
             throw new IllegalArgumentException("Litematica block-state palette exceeds the safe entry limit: "
                     + paletteSize + " entries (maximum " + MAX_PALETTE_ENTRIES + ")");
