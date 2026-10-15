@@ -1747,6 +1747,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (state.getBlock() instanceof ChestBlock && "type".equals(propertyName)) {
             return true; // single/left/right chest state is derived from neighboring chests
         }
+        if (state.getBlock() instanceof FenceGateBlock && "in_wall".equals(propertyName)) {
+            return true; // this state is recalculated from adjacent walls
+        }
         if (state.getBlock() instanceof NoteBlock
                 && ("instrument".equals(propertyName) || "powered".equals(propertyName))) {
             return true; // instrument follows the block below; powered follows a redstone signal
