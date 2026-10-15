@@ -2122,7 +2122,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || normalizedClass.contains("noteblock")
                 || normalizedClass.contains("repeater")
                 || normalizedClass.contains("comparator")
-                || normalizedClass.contains("lever")
                 || normalizedClass.contains("button")
                 || normalizedClass.contains("repeater")
                 || normalizedClass.contains("comparator")
