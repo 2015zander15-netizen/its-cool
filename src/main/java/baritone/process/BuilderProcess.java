@@ -66,6 +66,8 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.PipeBlock;
+import net.minecraft.world.level.block.ComparatorBlock;
+import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
@@ -514,18 +516,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     private Optional<Placement> possibleToPlace(BlockState toPlace, int x, int y, int z, BlockStateInterface bsi) {
+        BlockPos targetPos = new BetterBlockPos(x, y, z);
+        // Both checks depend on the target/world state, not on which adjacent support face we inspect.
+        if (!canSurviveAt(toPlace, targetPos) || !placementPlausible(targetPos, toPlace)) {
+            return Optional.empty();
+        }
         for (Direction against : Direction.values()) {
             BetterBlockPos placeAgainstPos = new BetterBlockPos(x, y, z).relative(against);
             // 'against' points from the target toward its support; the clicked face points back toward the target.
             Direction clickedFace = supportFaceForTargetDirection(against);
             BlockState placeAgainstState = bsi.get0(placeAgainstPos);
             if (MovementHelper.isReplaceable(placeAgainstPos.x, placeAgainstPos.y, placeAgainstPos.z, placeAgainstState, bsi)) {
-                continue;
-            }
-            if (!canSurviveAt(toPlace, new BetterBlockPos(x, y, z))) {
-                continue;
-            }
-            if (!placementPlausible(new BetterBlockPos(x, y, z), toPlace)) {
                 continue;
             }
             VoxelShape shape = getOutlineShapeOrNull(placeAgainstState, placeAgainstPos);
@@ -579,7 +580,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     || state.getBlock() instanceof TrapDoorBlock
                     || state.getBlock() instanceof FenceGateBlock;
         }
-        return "powered".equals(name) && state.getBlock() instanceof LeverBlock;
+        if ("powered".equals(name) && state.getBlock() instanceof LeverBlock) {
+            return true;
+        }
+        if ("delay".equals(name) && state.getBlock() instanceof RepeaterBlock) {
+            return true;
+        }
+        return "mode".equals(name) && state.getBlock() instanceof ComparatorBlock;
     }
 
     static boolean needsManualInteraction(BlockState current, BlockState desired) {
@@ -587,14 +594,21 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return false;
         }
         boolean hasToggleDifference = false;
+        boolean ignoreDirection = Baritone.settings().buildIgnoreDirection.value;
+        List<String> ignoredProperties = Baritone.settings().buildIgnoreProperties.value;
         for (Property<?> property : current.getValues().keySet()) {
-            if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))) {
+            if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))
+                    || ignoredProperties.contains(property.getName())) {
+                continue;
+            }
+            boolean manualInteractionProperty = isManualInteractionProperty(current, property);
+            if (ignoreDirection && ORIENTATION_PROPS.contains(property) && !manualInteractionProperty) {
                 continue;
             }
             if (isDerivedStateProperty(current, property)) {
                 continue; // externally powered/neighbor-derived state is not a manual toggle requirement
             }
-            if (!isManualInteractionProperty(current, property)) {
+            if (!manualInteractionProperty) {
                 return false;
             }
             hasToggleDifference = true;
@@ -1122,8 +1136,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<Goal> toBreak = new ArrayList<>();
         breakable.forEach(pos -> toBreak.add(breakGoal(pos, bcc)));
         List<Goal> toPlace = new ArrayList<>();
+        Set<BlockPos> placeablePositions = new HashSet<>(placeable);
         placeable.forEach(pos -> {
-            if (placeable.contains(pos.below()) || placeable.contains(pos.below(2))) {
+            if (placeablePositions.contains(pos.below()) || placeablePositions.contains(pos.below(2))) {
                 return; // build lower dependencies first
             }
             BlockState desired = bcc.getSchematic(
@@ -1512,6 +1527,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static boolean isRedstoneStateBlock(String normalizedClass) {
         return normalizedClass.contains("redstone")
                 || normalizedClass.contains("redstonewire")
+                || normalizedClass.contains("repeater")
+                || normalizedClass.contains("comparator")
                 || normalizedClass.contains("lever")
                 || normalizedClass.contains("button")
                 || normalizedClass.contains("pressureplate")
@@ -1558,7 +1575,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         for (Property<?> prop : map1.keySet()) {
             if (!Objects.equals(map1.get(prop), map2.get(prop))
                     && !isDerivedStateProperty(first, prop)
-                    && !(ignoreDirection && ORIENTATION_PROPS.contains(prop))
+                    && !(ignoreDirection && ORIENTATION_PROPS.contains(prop) && !isManualInteractionProperty(first, prop))
                     && !ignoredProps.contains(prop.getName())) {
                 return false;
             }
