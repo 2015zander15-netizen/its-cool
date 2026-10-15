@@ -21,7 +21,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Direction-dependent placement (stairs, logs, repeaters, observers, pistons, dispensers).
 - Support dependencies and placement order (torches, rails, buttons, redstone components, plants); the builder now defers goals until `canSurvive` succeeds, but this still needs acceptance testing.
 - Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update; confirm the derived-state comparison does not hide missing connections in the acceptance circuit.
-- Inventory refill and slot selection when required items are in the main inventory rather than the hotbar.
+- Inventory refill and slot selection when required items are in the main inventory rather than the hotbar; selection now waits for a successful swap, and `MovementHelper` remains in `ATTEMPTING` until the requested stack really occupies the selected hotbar slot.
 - Server rejection and delayed block updates still need in-game acceptance testing to tune retry behavior and false positives.
 - Stateful interaction timing needs live testing, especially paired door halves and levers affected by external redstone.
 - Fluids, environmental requirements, and block-entity contents; these need separate support work.
@@ -42,8 +42,8 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
 7. Malformed Litematica data: reject zero or more than 4,096 regions, zero dimensions, over-budget regions/aggregate schematics or composite bounding-box scan volume, overflowing signed coordinates/extents, missing palettes, wrong palette-entry/`Properties` tag types, unknown block identifiers or properties, invalid property values or palette indices, and truncated packed data cleanly, including tiny regions separated by enormous coordinate gaps.
 8. Loader integration: decode a minimal one-block Litematica NBT structure and reject an invalid packed palette index through the actual constructor/decode path.
-8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
+9. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
 ## Verification boundary
 
-GitHub Actions overlays the staged loader, builder process, inventory behavior, path executor, and regression-test files onto the upstream 1.21.11 Fabric branch, then runs unit tests and builds the Fabric remapped JAR. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
+GitHub Actions overlays the staged Litematica loader, builder process, inventory behavior, movement helper, path executor, and regression-test files onto the upstream 1.21.11 Fabric branch, then runs unit tests and builds the Fabric remapped JAR. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
