@@ -1171,9 +1171,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     if (desired != null) {
                         // we care about this position
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
-                        if (validForCurrentBuildPhase(bcc.bsi.get0(x, y, z), desired)) {
+                        BlockState current = bcc.bsi.get0(x, y, z);
+                        if (validForCurrentBuildPhase(current, desired)) {
                             incorrectPositions.remove(pos);
-                            observedCompleted.add(BetterBlockPos.longHash(pos));
+                            if (manualInteractionPhase || valid(current, desired, false)) {
+                                observedCompleted.add(BetterBlockPos.longHash(pos));
+                            } else {
+                                // Structural pass only: remember that this position still needs its stable state toggled.
+                                observedCompleted.remove(BetterBlockPos.longHash(pos));
+                            }
                         } else {
                             incorrectPositions.add(pos);
                             observedCompleted.remove(BetterBlockPos.longHash(pos));
@@ -1212,11 +1218,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     }
                     if (bcc.bsi.worldContainsLoadedChunk(blockX, blockZ)) { // check if its in render distance, not if its in cache
                         // we can directly observe this block, it is in render distance
-                        if (validForCurrentBuildPhase(
-                                bcc.bsi.get0(blockX, blockY, blockZ),
-                                schematic.desiredState(x, y, z, current, this.approxPlaceable)
-                        )) {
-                            observedCompleted.add(BetterBlockPos.longHash(blockX, blockY, blockZ));
+                        BlockState desired = schematic.desiredState(x, y, z, current, this.approxPlaceable);
+                        if (validForCurrentBuildPhase(bcc.bsi.get0(blockX, blockY, blockZ), desired)) {
+                            long positionHash = BetterBlockPos.longHash(blockX, blockY, blockZ);
+                            if (manualInteractionPhase || valid(current, desired, false)) {
+                                observedCompleted.add(positionHash);
+                            } else {
+                                // Do not let the structural pass hide a pending toggle after its chunk unloads.
+                                observedCompleted.remove(positionHash);
+                            }
                         } else {
                             incorrectPositions.add(new BetterBlockPos(blockX, blockY, blockZ));
                             observedCompleted.remove(BetterBlockPos.longHash(blockX, blockY, blockZ));
