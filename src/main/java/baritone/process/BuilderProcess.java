@@ -159,13 +159,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     static int nextGoalPathFailureCount(boolean calcFailed, Goal previousGoal, Goal currentGoal,
             int previousCount, boolean progressChanged) {
-        if (!calcFailed) {
-            return 0; // a successful calculation breaks the consecutive-failure streak
-        }
         if (progressChanged || previousGoal == null || !previousGoal.equals(currentGoal)) {
-            return 1;
+            return calcFailed ? 1 : 0;
         }
-        return previousCount + 1;
+        // calcFailed is a one-tick event flag; preserve the count across ordinary ticks
+        // until the same goal makes real progress or a different goal is requested.
+        return calcFailed ? previousCount + 1 : previousCount;
     }
 
     static int placementRetryDelayTicks(int attemptNumber) {
