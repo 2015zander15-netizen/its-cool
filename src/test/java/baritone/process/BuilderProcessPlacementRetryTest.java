@@ -258,6 +258,12 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void sculkSensorPhaseIsTreatedAsRuntimeDerivedState() {
+        BlockState sensor = Blocks.SCULK_SENSOR.defaultBlockState();
+        assertTrue(BuilderProcess.isDerivedStateProperty(sensor, property(sensor, "phase")));
+    }
+
+    @Test
     public void tripwireAttachmentIsNeighborDerived() {
         BlockState detached = Blocks.TRIPWIRE.defaultBlockState().setValue(TripWireBlock.ATTACHED, false);
         BlockState attached = detached.setValue(TripWireBlock.ATTACHED, true);
