@@ -20,14 +20,18 @@ package baritone.process;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
+import baritone.Baritone;
 import baritone.api.pathing.goals.GoalBlock;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -152,6 +156,35 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor));
         assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor));
         assertTrue(BuilderProcess.needsManualInteraction(closedGate, openGate));
+    }
+
+    @Test
+    public void repeaterDelayAndComparatorModeUseInteractions() {
+        BlockState repeaterOne = Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.DELAY, 1);
+        BlockState repeaterTwo = Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.DELAY, 2);
+        BlockState comparatorCompare = Blocks.COMPARATOR.defaultBlockState()
+                .setValue(ComparatorBlock.MODE, ComparatorMode.COMPARE);
+        BlockState comparatorSubtract = Blocks.COMPARATOR.defaultBlockState()
+                .setValue(ComparatorBlock.MODE, ComparatorMode.SUBTRACT);
+
+        assertTrue(BuilderProcess.needsManualInteraction(repeaterOne, repeaterTwo));
+        assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract));
+        assertTrue(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "powered")));
+        assertFalse(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "delay")));
+    }
+
+    @Test
+    public void manualTrapdoorStateIsNotIgnoredByIgnoreDirectionSetting() {
+        boolean original = Baritone.settings().buildIgnoreDirection.value;
+        try {
+            Baritone.settings().buildIgnoreDirection.value = true;
+            BlockState closed = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
+            BlockState open = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
+            assertFalse(BuilderProcess.sameBlockstate(closed, open));
+            assertTrue(BuilderProcess.needsManualInteraction(closed, open));
+        } finally {
+            Baritone.settings().buildIgnoreDirection.value = original;
+        }
     }
 
     @Test
