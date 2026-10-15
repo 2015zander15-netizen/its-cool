@@ -567,6 +567,73 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ((BlockHitResult) hit).getDirection() == expectedFace;
     }
 
+    static boolean isAimedAtBlock(HitResult hit, BlockPos expectedBlock) {
+        return hit != null && hit.getType() == HitResult.Type.BLOCK
+                && ((BlockHitResult) hit).getBlockPos().equals(expectedBlock);
+    }
+
+    static boolean isManualInteractionProperty(BlockState state, Property<?> property) {
+        String name = property.getName();
+        if ("open".equals(name)) {
+            return state.getBlock() instanceof DoorBlock
+                    || state.getBlock() instanceof TrapDoorBlock
+                    || state.getBlock() instanceof FenceGateBlock;
+        }
+        return "powered".equals(name) && state.getBlock() instanceof LeverBlock;
+    }
+
+    static boolean needsManualInteraction(BlockState current, BlockState desired) {
+        if (current == null || desired == null || current.getBlock() != desired.getBlock()) {
+            return false;
+        }
+        boolean hasToggleDifference = false;
+        for (Property<?> property : current.getValues().keySet()) {
+            if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))) {
+                continue;
+            }
+            if (!isManualInteractionProperty(current, property)) {
+                return false;
+            }
+            hasToggleDifference = true;
+        }
+        return hasToggleDifference;
+    }
+
+    private void recordToggleAttempt(BlockPos pos, BlockState current, BlockState desired) {
+        ToggleAttempt attempt = toggleAttempts.get(pos);
+        if (attempt == null || !attempt.originalState.equals(current)
+                || !sameBlockstate(attempt.desiredState, desired)) {
+            attempt = new ToggleAttempt(current, desired);
+            toggleAttempts.put(new BlockPos(pos), attempt);
+        }
+        attempt.attempts++;
+        attempt.retryAtTick = builderTick + placementRetryDelayTicks(attempt.attempts);
+    }
+
+    private boolean isToggleAttemptExhausted(BlockPos pos, BlockState current, BlockState desired) {
+        ToggleAttempt attempt = toggleAttempts.get(pos);
+        return attempt != null && attempt.attempts >= MAX_PLACEMENT_ATTEMPTS
+                && builderTick >= attempt.retryAtTick
+                && attempt.originalState.equals(current)
+                && sameBlockstate(attempt.desiredState, desired);
+    }
+
+    private void cleanupToggleAttempts(BuilderCalculationContext bcc) {
+        Iterator<Map.Entry<BlockPos, ToggleAttempt>> iterator = toggleAttempts.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos, ToggleAttempt> entry = iterator.next();
+            BlockPos pos = entry.getKey();
+            ToggleAttempt attempt = entry.getValue();
+            BlockState current = bcc.bsi.get0(pos);
+            BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+            if (!needsManualInteraction(current, desired)
+                    || !sameBlockstate(attempt.desiredState, desired)
+                    || !current.equals(attempt.originalState)) {
+                iterator.remove();
+            }
+        }
+    }
+
     private void recordPlacementAttempt(BlockPos target, BlockState desired, BlockPos supportPos) {
         BlockState current = ctx.world().getBlockState(target);
         BlockState supportState = ctx.world().getBlockState(supportPos);
@@ -1393,6 +1460,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         String propertyName = property.getName();
         String blockClass = state.getBlock().getClass().getSimpleName();
         String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
+        if ("powered".equals(propertyName) && state.getBlock() instanceof LeverBlock) {
+            return false; // lever state is selected by player interaction, not circuit power alone
+        }
         if (DYNAMIC_STATE_PROPERTIES.contains(propertyName) && isRedstoneStateBlock(normalizedClass)) {
             return true;
         }
