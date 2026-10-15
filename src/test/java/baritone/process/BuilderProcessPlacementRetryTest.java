@@ -192,6 +192,14 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void manualInteractionsRequireFinalPhaseAndNoStructuralWork() {
+        assertFalse(BuilderProcess.manualInteractionsAllowed(false, true));
+        assertFalse(BuilderProcess.manualInteractionsAllowed(false, false));
+        assertFalse(BuilderProcess.manualInteractionsAllowed(true, false));
+        assertTrue(BuilderProcess.manualInteractionsAllowed(true, true));
+    }
+
+    @Test
     public void deferredInteractionClassificationSeparatesTogglesFromStructuralWork() {
         BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
         BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
