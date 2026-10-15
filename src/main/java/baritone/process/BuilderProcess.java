@@ -540,9 +540,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             // can have empty gaps inside their union bounding box.
             for (AABB aabb : getShapeBoxesOrEmpty(shape, placeAgainstPos)) {
                 for (Vec3 placementMultiplier : aabbSideMultipliers(clickedFace)) {
-                    double placeX = placeAgainstPos.x + aabb.minX * placementMultiplier.x + aabb.maxX * (1 - placementMultiplier.x);
-                    double placeY = placeAgainstPos.y + aabb.minY * placementMultiplier.y + aabb.maxY * (1 - placementMultiplier.y);
-                    double placeZ = placeAgainstPos.z + aabb.minZ * placementMultiplier.z + aabb.maxZ * (1 - placementMultiplier.z);
+                    double placeX = placeAgainstPos.x + sampleCoordinate(aabb.minX, aabb.maxX, placementMultiplier.x);
+                    double placeY = placeAgainstPos.y + sampleCoordinate(aabb.minY, aabb.maxY, placementMultiplier.y);
+                    double placeZ = placeAgainstPos.z + sampleCoordinate(aabb.minZ, aabb.maxZ, placementMultiplier.z);
                     Rotation rot = RotationUtils.calcRotationFromVec3d(RayTraceUtils.inferSneakingEyePosition(ctx.player()), new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
                     Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
                     HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
@@ -773,7 +773,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return OptionalInt.empty();
     }
 
-    private static Vec3[] aabbSideMultipliers(Direction side) {
+    static double sampleCoordinate(double min, double max, double multiplier) {
+        // A multiplier of 0 samples the minimum face, 1 the maximum face, and 0.5 the midpoint.
+        return min + (max - min) * multiplier;
+    }
+
+    static Vec3[] aabbSideMultipliers(Direction side) {
         switch (side) {
             case UP:
                 return new Vec3[]{new Vec3(0.5, 1, 0.5), new Vec3(0.1, 1, 0.5), new Vec3(0.9, 1, 0.5), new Vec3(0.5, 1, 0.1), new Vec3(0.5, 1, 0.9)};
