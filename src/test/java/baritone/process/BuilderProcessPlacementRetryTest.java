@@ -20,6 +20,7 @@ package baritone.process;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.DaylightDetectorBlock;
@@ -30,6 +31,7 @@ import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.AABB;
@@ -166,6 +168,22 @@ public class BuilderProcessPlacementRetryTest {
             throw new AssertionError("Expected property " + name + " on " + state.getBlock());
         }
         return property;
+    }
+
+    @Test
+    public void chestTypeAndVineConnectionsAreNeighborDerived() {
+        BlockState singleChest = Blocks.CHEST.defaultBlockState()
+                .setValue(ChestBlock.TYPE, ChestType.SINGLE);
+        BlockState leftChest = Blocks.CHEST.defaultBlockState()
+                .setValue(ChestBlock.TYPE, ChestType.LEFT);
+        BlockState northFacingChest = singleChest.setValue(ChestBlock.FACING, Direction.NORTH);
+        BlockState eastFacingChest = leftChest.setValue(ChestBlock.FACING, Direction.EAST);
+        BlockState vine = Blocks.VINE.defaultBlockState();
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(singleChest, property(singleChest, "type")));
+        assertTrue(BuilderProcess.sameBlockstate(singleChest, leftChest, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.sameBlockstate(northFacingChest, eastFacingChest, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isDerivedStateProperty(vine, property(vine, "north")));
     }
 
     @Test
