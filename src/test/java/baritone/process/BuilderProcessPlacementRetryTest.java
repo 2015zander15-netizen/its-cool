@@ -382,6 +382,14 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void layerMaskIsDisabledForFinalManualInteractionPass() {
+        assertTrue(BuilderProcess.layerIncludesY(2, 0, 3, false));
+        assertFalse(BuilderProcess.layerIncludesY(5, 0, 3, false));
+        assertTrue(BuilderProcess.layerIncludesY(5, 0, 3, true));
+        assertTrue(BuilderProcess.layerIncludesY(0, 4, 7, true));
+    }
+
+    @Test
     public void aabbFaceMultipliersSampleTheRequestedFace() {
         AABB box = new AABB(2, 4, 6, 10, 12, 14);
 
