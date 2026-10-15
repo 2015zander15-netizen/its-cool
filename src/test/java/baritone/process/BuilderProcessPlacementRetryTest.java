@@ -243,6 +243,29 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void openableOpenStateIsNotIgnoredWithIgnoreDirectionEnabled() {
+        BlockState ironTrapdoorClosed = Blocks.IRON_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, false);
+        BlockState ironTrapdoorOpen = Blocks.IRON_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, true);
+        BlockState woodenTrapdoorClosed = Blocks.OAK_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, false);
+        BlockState woodenTrapdoorOpen = Blocks.OAK_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, true);
+
+        assertTrue(BuilderProcess.isOpenableOpenProperty(ironTrapdoorClosed,
+                property(ironTrapdoorClosed, "open")));
+        assertFalse(BuilderProcess.sameBlockstate(
+                ironTrapdoorClosed, ironTrapdoorOpen, true, Collections.emptyList()));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
+                ironTrapdoorClosed, ironTrapdoorOpen, true, Collections.emptyList()));
+        assertFalse(BuilderProcess.sameBlockstate(
+                woodenTrapdoorClosed, woodenTrapdoorOpen, true, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(
+                woodenTrapdoorClosed, woodenTrapdoorOpen, true, Collections.emptyList()));
+    }
+
+    @Test
     public void ironDoorAndIronTrapdoorOpenStatesAreNotHandToggles() {
         BlockState ironDoorClosed = Blocks.IRON_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, false);
