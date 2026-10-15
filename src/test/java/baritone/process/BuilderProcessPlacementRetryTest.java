@@ -64,7 +64,7 @@ public class BuilderProcessPlacementRetryTest {
         assertEquals(1, BuilderProcess.nextGoalPathFailureCount(true, goal, differentGoal, 1, false));
         assertEquals(0, BuilderProcess.nextGoalPathFailureCount(false, goal, goal, 1, true));
         assertEquals(1, BuilderProcess.nextGoalPathFailureCount(true, goal, goal, 1, true));
-        assertEquals(0, BuilderProcess.nextGoalPathFailureCount(false, goal, goal, 1, false));
+        assertEquals(1, BuilderProcess.nextGoalPathFailureCount(false, goal, goal, 1, false));
     }
 
     @Test
