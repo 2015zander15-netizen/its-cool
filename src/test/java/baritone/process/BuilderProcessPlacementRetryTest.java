@@ -136,6 +136,15 @@ public class BuilderProcessPlacementRetryTest {
         assertFalse(BuilderProcess.isDerivedStateProperty(furnace, property(furnace, "lit")));
     }
 
+    @SuppressWarnings("unchecked")
+    private static BlockState withBooleanProperty(BlockState state, String name, boolean value) {
+        Property<Boolean> property = (Property<Boolean>) state.getBlock().getStateDefinition().getProperty(name);
+        if (property == null) {
+            throw new AssertionError("Expected boolean property " + name + " on " + state.getBlock());
+        }
+        return state.setValue(property, value);
+    }
+
     private static Property<?> property(BlockState state, String name) {
         Property<?> property = state.getBlock().getStateDefinition().getProperty(name);
         if (property == null) {
@@ -201,6 +210,20 @@ public class BuilderProcessPlacementRetryTest {
 
         assertTrue(BuilderProcess.needsManualInteraction(current, desired));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired));
+    }
+
+    @Test
+    public void temporaryButtonPulseIsNotTreatedAsAStableToggleTarget() {
+        BlockState button = Blocks.STONE_BUTTON.defaultBlockState();
+        BlockState unpowered = withBooleanProperty(button, "powered", false);
+        BlockState powered = withBooleanProperty(button, "powered", true);
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(
+                Blocks.OAK_DOOR.defaultBlockState(),
+                property(Blocks.OAK_DOOR.defaultBlockState(), "powered")
+        ));
+        assertFalse(BuilderProcess.isManualInteractionProperty(button, property(button, "powered")));
+        assertFalse(BuilderProcess.needsManualInteraction(unpowered, powered));
     }
 
     @Test
