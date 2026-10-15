@@ -223,7 +223,9 @@ public class BuilderProcessPlacementRetryTest {
         assertFalse(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(manuallyOpenDoor, desired, false, Collections.emptyList()));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isDerivedStateProperty(current, property(current, "open")));
+        assertFalse(BuilderProcess.sameBlockstate(current, desired, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(current, desired, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isDerivedStateProperty(current, property(current, "open")));
     }
 
     @Test
