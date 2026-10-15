@@ -169,6 +169,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return calcFailed ? previousCount + 1 : previousCount;
     }
 
+    static boolean layerIncludesY(int y, int minYInclusive, int maxYInclusive, boolean manualInteractionPhase) {
+        return manualInteractionPhase || (y >= minYInclusive && y <= maxYInclusive);
+    }
+
     static int placementRetryDelayTicks(int attemptNumber) {
         if (attemptNumber < 1) {
             throw new IllegalArgumentException("attemptNumber must be at least 1");
@@ -929,7 +933,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 @Override
                 public boolean inSchematic(int x, int y, int z, BlockState currentState) {
                     return ISchematic.super.inSchematic(x, y, z, currentState)
-                            && (manualInteractionPhase || (y >= minYInclusive && y <= maxYInclusive))
+                            && layerIncludesY(y, minYInclusive, maxYInclusive, manualInteractionPhase)
                             && realSchematic.inSchematic(x, y, z, currentState);
                 }
 
