@@ -361,6 +361,34 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return state;
     }
 
+    private Optional<Tuple<BetterBlockPos, Rotation>> toToggleNearPlayer(BuilderCalculationContext bcc) {
+        BetterBlockPos center = ctx.playerFeet();
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dy = -1; dy <= 5; dy++) {
+                for (int dz = -5; dz <= 5; dz++) {
+                    BetterBlockPos pos = new BetterBlockPos(center.x + dx, center.y + dy, center.z + dz);
+                    BlockState current = bcc.bsi.get0(pos);
+                    BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+                    if (desired == null || !needsManualInteraction(current, desired)
+                            || isToggleAttemptExhausted(pos, current, desired)) {
+                        continue;
+                    }
+                    ToggleAttempt attempt = toggleAttempts.get(pos);
+                    if (attempt != null && builderTick < attempt.retryAtTick) {
+                        continue;
+                    }
+                    Optional<Rotation> rotation = RotationUtils.reachable(
+                            ctx, pos, ctx.playerController().getBlockReachDistance()
+                    );
+                    if (rotation.isPresent()) {
+                        return Optional.of(new Tuple<>(pos, rotation.get()));
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     private Optional<Tuple<BetterBlockPos, Rotation>> toBreakNearPlayer(BuilderCalculationContext bcc) {
         BetterBlockPos center = ctx.playerFeet();
         BetterBlockPos pathStart = baritone.getPathingBehavior().pathStart();
@@ -378,7 +406,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         continue; // irrelevant
                     }
                     BlockState curr = bcc.bsi.get0(x, y, z);
-                    if (!(curr.getBlock() instanceof AirBlock) && !(curr.getBlock() == Blocks.WATER || curr.getBlock() == Blocks.LAVA) && !valid(curr, desired, false)) {
+                    if (!(curr.getBlock() instanceof AirBlock) && !(curr.getBlock() == Blocks.WATER || curr.getBlock() == Blocks.LAVA)
+                            && !valid(curr, desired, false) && !needsManualInteraction(curr, desired)) {
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
                         Optional<Rotation> rot = RotationUtils.reachable(ctx, pos, ctx.playerController().getBlockReachDistance());
                         if (rot.isPresent()) {
@@ -744,6 +773,27 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         if (Baritone.settings().distanceTrim.value) {
             trim();
+        }
+
+        Optional<Tuple<BetterBlockPos, Rotation>> toToggle = toToggleNearPlayer(bcc);
+        if (toToggle.isPresent() && isSafeToCancel && ctx.player().onGround()) {
+            Rotation rot = toToggle.get().getB();
+            BetterBlockPos pos = toToggle.get().getA();
+            baritone.getLookBehavior().updateTarget(rot, true);
+            if (isAimedAtBlock(ctx.objectMouseOver(), pos) && ticks <= 0) {
+                // These blocks use a normal right-click to select the desired stable state.
+                // Do not sneak: sneaking can suppress the block interaction and place the held item.
+                baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, false);
+                baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
+                BlockState current = bcc.bsi.get0(pos);
+                BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+                if (desired != null) {
+                    recordToggleAttempt(pos, current, desired);
+                }
+            }
+            lastRequestedGoal = null;
+            consecutivePathFailures = 0;
+            return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
         }
 
         Optional<Tuple<BetterBlockPos, Rotation>> toBreak = toBreakNearPlayer(bcc);
