@@ -35,6 +35,9 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Samples the support face facing toward the target and requires the actual raycast to hit that exact support block and face before right-clicking; AABB coordinate weights are tested for all six faces.
 - Requires the actual raycast to hit the selected block before mining; approximate rotation alone no longer forces a left-click.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
+- Interacts with stable manual state properties for doors, trapdoors, fence gates, levers, note pitches, daylight detector inversion, repeater delay, and comparator mode; buttons’ short-lived powered pulses are not treated as durable targets.
+- Defers pure open-state mismatches held by active redstone power rather than repeatedly clicking or breaking those blocks.
+- Ignores neighbor-derived chest type and connection properties for vines/connection blocks while preserving facing checks.
 - Handles stable right-click-adjustable mismatches for doors, trapdoors, fence gates, levers, repeaters, comparators, note-block pitch, and daylight-sensor inversion before considering a break; rejected interactions back off, are deferred while other work proceeds, and are reported when no other work remains. Temporary button pulses and externally powered states are not treated as user-settable targets. If a door/trapdoor/gate is held open by redstone, its open-state mismatch stays outstanding, but the builder does not click or break it; it reports the power dependency instead.
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 - Guards the inventory/throwaway selector against exceptions from modded block placement prediction, with a block-identity fallback.
