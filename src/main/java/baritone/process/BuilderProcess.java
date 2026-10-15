@@ -60,7 +60,10 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.PipeBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
@@ -87,6 +90,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static final int MAX_PLACEMENT_ATTEMPTS = 5;
     private static final int INITIAL_PLACEMENT_RETRY_TICKS = 4;
     private static final int MAX_PLACEMENT_RETRY_TICKS = 32;
+    private static final int MAX_INTERACTION_ATTEMPTS = 3;
+    private static final int INITIAL_INTERACTION_RETRY_TICKS = 8;
+    private static final int MAX_INTERACTION_RETRY_TICKS = 40;
 
     private static final Set<Property<?>> ORIENTATION_PROPS =
             Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
@@ -118,6 +124,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private BlockPos lastFailureObservedPlayerPos;
     private int lastFailureIncorrectPositionsSize;
     private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
+    private final Map<BlockPos, InteractionAttempt> interactionAttempts = new HashMap<>();
     public int stopAtHeight = 0;
 
     private static final class PlacementAttempt {
@@ -137,6 +144,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 
+    private static final class InteractionAttempt {
+        private final BlockState originalState;
+        private final BlockState desiredState;
+        private int attempts;
+        private int retryAtTick;
+
+        private InteractionAttempt(BlockState originalState, BlockState desiredState) {
+            this.originalState = originalState;
+            this.desiredState = desiredState;
+        }
+    }
+
     static int nextGoalPathFailureCount(boolean calcFailed, Goal previousGoal, Goal currentGoal,
             int previousCount, boolean progressChanged) {
         if (progressChanged || previousGoal == null || !previousGoal.equals(currentGoal)) {
@@ -153,6 +172,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return Math.min(INITIAL_PLACEMENT_RETRY_TICKS << exponent, MAX_PLACEMENT_RETRY_TICKS);
     }
 
+    static int interactionRetryDelayTicks(int attemptNumber) {
+        if (attemptNumber < 1) {
+            throw new IllegalArgumentException("attemptNumber must be at least 1");
+        }
+        int exponent = Math.min(attemptNumber - 1, 3);
+        return Math.min(INITIAL_INTERACTION_RETRY_TICKS << exponent, MAX_INTERACTION_RETRY_TICKS);
+    }
+
     public BuilderProcess(Baritone baritone) {
         super(baritone);
     }
@@ -160,6 +187,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public void build(String name, ISchematic schematic, Vec3i origin) {
         placementAttempts.clear();
+        interactionAttempts.clear();
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
@@ -235,6 +263,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void resume() {
         resetPathFailureTracking();
         placementAttempts.clear();
+        interactionAttempts.clear();
         paused = false;
     }
 
@@ -341,6 +370,113 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return null;
         }
         return state;
+    }
+
+    private static Property<?> interactiveStateProperty(BlockState state) {
+        if (state.getBlock() instanceof LeverBlock) {
+            return LeverBlock.POWERED;
+        }
+        if (state.getBlock() instanceof DoorBlock) {
+            return DoorBlock.OPEN;
+        }
+        if (state.getBlock() instanceof TrapDoorBlock) {
+            return TrapDoorBlock.OPEN;
+        }
+        if (state.getBlock() instanceof FenceGateBlock) {
+            return FenceGateBlock.OPEN;
+        }
+        return null;
+    }
+
+    static boolean needsPlayerInteraction(BlockState current, BlockState desired) {
+        if (current == null || desired == null || current.getBlock() != desired.getBlock()) {
+            return false;
+        }
+        Property<?> property = interactiveStateProperty(desired);
+        return property != null
+                && !Objects.equals(current.getValues().get(property), desired.getValues().get(property));
+    }
+
+    static boolean matchesPlacementState(BlockState predicted, BlockState desired) {
+        if (valid(predicted, desired, true)) {
+            return true;
+        }
+        Property<?> interactiveProperty = interactiveStateProperty(desired);
+        return interactiveProperty != null
+                && needsPlayerInteraction(predicted, desired)
+                && sameBlockstateExceptProperty(predicted, desired, interactiveProperty);
+    }
+
+    private void recordInteractionAttempt(BlockPos pos, BlockState desired) {
+        BlockState current = ctx.world().getBlockState(pos);
+        InteractionAttempt attempt = interactionAttempts.get(pos);
+        if (attempt == null || !attempt.originalState.equals(current)
+                || !sameBlockstate(attempt.desiredState, desired)) {
+            attempt = new InteractionAttempt(current, desired);
+            interactionAttempts.put(new BlockPos(pos), attempt);
+        }
+        attempt.attempts++;
+        attempt.retryAtTick = builderTick + interactionRetryDelayTicks(attempt.attempts);
+    }
+
+    private boolean isInteractionAttemptExhausted(BlockPos pos, BlockState current, BlockState desired) {
+        InteractionAttempt attempt = interactionAttempts.get(pos);
+        return attempt != null
+                && attempt.attempts >= MAX_INTERACTION_ATTEMPTS
+                && builderTick >= attempt.retryAtTick
+                && attempt.originalState.equals(current)
+                && needsPlayerInteraction(current, desired)
+                && sameBlockstate(attempt.desiredState, desired);
+    }
+
+    private void cleanupInteractionAttempts(BuilderCalculationContext bcc) {
+        Iterator<Map.Entry<BlockPos, InteractionAttempt>> iterator = interactionAttempts.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos, InteractionAttempt> entry = iterator.next();
+            BlockPos pos = entry.getKey();
+            InteractionAttempt attempt = entry.getValue();
+            BlockState current = bcc.bsi.get0(pos);
+            BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+            if (desired == null || !needsPlayerInteraction(current, desired)
+                    || !attempt.originalState.equals(current)
+                    || !sameBlockstate(attempt.desiredState, desired)) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private Optional<Tuple<BetterBlockPos, Rotation>> toInteractNearPlayer(BuilderCalculationContext bcc) {
+        BetterBlockPos center = ctx.playerFeet();
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dy = -1; dy <= 5; dy++) {
+                for (int dz = -5; dz <= 5; dz++) {
+                    BetterBlockPos pos = new BetterBlockPos(center.x + dx, center.y + dy, center.z + dz);
+                    BlockState current = bcc.bsi.get0(pos);
+                    BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+                    if (desired == null || valid(current, desired, false)
+                            || !needsPlayerInteraction(current, desired)
+                            || isInteractionAttemptExhausted(pos, current, desired)) {
+                        continue;
+                    }
+                    InteractionAttempt attempt = interactionAttempts.get(pos);
+                    if (attempt != null && builderTick < attempt.retryAtTick) {
+                        continue;
+                    }
+                    Optional<Rotation> rotation = RotationUtils.reachable(
+                            ctx, pos, ctx.playerController().getBlockReachDistance()
+                    );
+                    if (rotation.isPresent()) {
+                        return Optional.of(new Tuple<>(pos, rotation.get()));
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    static boolean isAimedAtBlock(HitResult hit, BlockPos expectedPos) {
+        return hit != null && hit.getType() == HitResult.Type.BLOCK
+                && ((BlockHitResult) hit).getBlockPos().equals(expectedPos);
     }
 
     private Optional<Tuple<BetterBlockPos, Rotation>> toBreakNearPlayer(BuilderCalculationContext bcc) {
@@ -1250,6 +1386,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public void onLostControl() {
         placementAttempts.clear();
+        interactionAttempts.clear();
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
