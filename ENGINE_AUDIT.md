@@ -10,7 +10,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 3. Support-face sampling reverses the target-to-support direction, and a placement click requires the real raycast to match the exact support block and face. Failed clicks use increasing retry delays; waiting targets do not monopolize path goals, and after five attempts with no target-state change the builder defers that target and continues with other work.
 4. Repeated path calculation failures are bounded; a changed goal can be tried once, but the same goal failing twice without player/block progress pauses with diagnostic guidance.
 5. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
-6. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
+6. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics, more than 4,096 regions, empty palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
 7. Stable toggle-only mismatches for doors, trapdoors, fence gates, levers, repeaters, and comparators are routed through verified right-clicks rather than breaking the existing block. Waiting retries yield to other build work; exhausted failures are diagnosed. Temporary button pulses and externally powered flags are treated as derived state.
 
