@@ -24,6 +24,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -149,7 +150,14 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             if (block == null) {
                 throw new IllegalArgumentException("Unknown block in Litematica palette: " + blockId);
             }
-            CompoundTag properties = paletteEntry.getCompoundOrEmpty("Properties");
+            Tag propertiesTag = paletteEntry.get("Properties");
+            if (propertiesTag != null && !(propertiesTag instanceof CompoundTag)) {
+                throw new IllegalArgumentException("Properties for Litematica palette entry "
+                        + blockId + " must be an NBT compound");
+            }
+            CompoundTag properties = propertiesTag instanceof CompoundTag
+                    ? (CompoundTag) propertiesTag
+                    : new CompoundTag();
             blockList[i] = getBlockState(block, properties);
         }
         return blockList;
