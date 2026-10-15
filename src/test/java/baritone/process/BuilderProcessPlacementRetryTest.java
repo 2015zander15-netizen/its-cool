@@ -593,13 +593,17 @@ public class BuilderProcessPlacementRetryTest {
 
         assertFalse(goal.isInGoal(failedFeet.getX(), failedFeet.getY(), failedFeet.getZ()));
         assertTrue(goal.isInGoal(alternateFeet.getX(), alternateFeet.getY(), alternateFeet.getZ()));
-        assertTrue(goal.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
+        // A lower, horizontally adjacent stance is permitted when same-level approaches are enabled.
+        assertTrue(goal.isInGoal(alternateFeet.getX(), target.getY() - 1, alternateFeet.getZ()));
+        // The target cell and feet cell directly below it overlap the player's body.
         assertFalse(goal.isInGoal(target.getX(), target.getY(), target.getZ()));
+        assertFalse(goal.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
 
         BuilderProcess.GoalPlacementApproach noSameLevel = new BuilderProcess.GoalPlacementApproach(
                 target, Collections.emptySet(), false
         );
         assertFalse(noSameLevel.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
+        assertFalse(noSameLevel.isInGoal(alternateFeet.getX(), target.getY() - 1, alternateFeet.getZ()));
     }
 
     @Test
