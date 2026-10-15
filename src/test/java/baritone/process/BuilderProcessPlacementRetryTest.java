@@ -276,6 +276,12 @@ public class BuilderProcessPlacementRetryTest {
         BlockState poweredOnlyCurrent = Blocks.OAK_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, false)
                 .setValue(DoorBlock.POWERED, true);
+        BlockState unpoweredClosedDoor = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, false)
+                .setValue(DoorBlock.POWERED, false);
+        BlockState expectedPoweredOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, true)
+                .setValue(DoorBlock.POWERED, true);
         BlockState manuallyOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, true)
                 .setValue(DoorBlock.POWERED, false);
@@ -294,6 +300,10 @@ public class BuilderProcessPlacementRetryTest {
 
         assertFalse(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(manuallyOpenDoor, desired, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.needsManualInteraction(
+                unpoweredClosedDoor, expectedPoweredOpenDoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
+                unpoweredClosedDoor, expectedPoweredOpenDoor, false, Collections.emptyList()));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired, false, Collections.emptyList()));
         assertFalse(BuilderProcess.sameBlockstate(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(current, desired, false, Collections.emptyList()));
