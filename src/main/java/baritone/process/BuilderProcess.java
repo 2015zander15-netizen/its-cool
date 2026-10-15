@@ -1340,7 +1340,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     if (bcc.bsi.worldContainsLoadedChunk(blockX, blockZ)) { // check if its in render distance, not if its in cache
                         // we can directly observe this block, it is in render distance
                         BlockState desired = schematic.desiredState(x, y, z, current, this.approxPlaceable);
-                        BlockPos pos = new BetterBlockPos(blockX, blockY, blockZ);
+                        BetterBlockPos pos = new BetterBlockPos(blockX, blockY, blockZ);
                         long positionHash = BetterBlockPos.longHash(pos);
                         if (validForCurrentBuildPhase(current, desired)) {
                             if (!manualInteractionPhase && isDeferredManualStateMismatch(
