@@ -122,6 +122,22 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void manualToggleDifferencesRemainVisibleToBuilder() {
+        BlockState leverOff = Blocks.LEVER.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
+        BlockState leverOn = leverOff.setValue(net.minecraft.world.level.block.LeverBlock.POWERED, true);
+        BlockState doorClosed = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
+        BlockState doorOpen = doorClosed.setValue(DoorBlock.OPEN, true);
+        BlockState repeaterOneTick = Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.DELAY, 1);
+        BlockState repeaterTwoTicks = repeaterOneTick.setValue(RepeaterBlock.DELAY, 2);
+
+        assertTrue(BuilderProcess.needsManualInteraction(leverOff, leverOn, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(doorClosed, doorOpen, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(repeaterOneTick, repeaterTwoTicks, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.sameBlockstate(leverOff, leverOn));
+    }
+
+    @Test
     public void derivedRedstonePropertiesAreRecognizedAsDynamic() {
         BlockState wire = Blocks.REDSTONE_WIRE.defaultBlockState();
         BlockState lever = Blocks.LEVER.defaultBlockState();
@@ -136,6 +152,8 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
         assertTrue(BuilderProcess.isDerivedStateProperty(hopper, property(hopper, "enabled")));
         assertTrue(BuilderProcess.isDerivedStateProperty(dispenser, property(dispenser, "triggered")));
+        BlockState door = Blocks.OAK_DOOR.defaultBlockState();
+        assertTrue(BuilderProcess.isDerivedStateProperty(door, property(door, "powered")));
         assertFalse(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "facing")));
         assertFalse(BuilderProcess.isDerivedStateProperty(furnace, property(furnace, "lit")));
     }
