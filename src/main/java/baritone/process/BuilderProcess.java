@@ -1557,6 +1557,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 
+    static Direction[] placementSupportDirections() {
+        // Include UP so ceiling-mounted controls and other underside placements can be approached from below.
+        return Direction.values();
+    }
+
     private Goal placementGoal(BlockPos pos, BuilderCalculationContext bcc) {
         if (!(ctx.world().getBlockState(pos).getBlock() instanceof AirBlock)) {  // TODO can this even happen?
             return new GoalPlace(pos);
@@ -1569,7 +1574,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
 
         List<Goal> approachGoals = new ArrayList<>();
-        for (Direction towardSupport : Movement.HORIZONTALS_BUT_ALSO_DOWN_____SO_EVERY_DIRECTION_EXCEPT_UP) {
+        for (Direction towardSupport : placementSupportDirections()) {
             BlockPos supportPos = pos.relative(towardSupport);
             //noinspection ConstantConditions
             if (MovementHelper.canPlaceAgainst(ctx, supportPos)) {
