@@ -1255,11 +1255,28 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             toPlace.add(placementGoal(pos, bcc));
         });
         sourceLiquids.forEach(pos -> toPlace.add(new GoalBlock(pos.above())));
-        interactable.forEach(pos -> toPlace.add(new GoalGetToBlock(pos)));
 
         if (!toPlace.isEmpty()) {
             return new JankyGoalComposite(new GoalComposite(toPlace.toArray(new Goal[0])), new GoalComposite(toBreak.toArray(new Goal[0])));
         }
+        if (!toBreak.isEmpty()) {
+            return new GoalComposite(toBreak.toArray(new Goal[0]));
+        }
+
+        // Activate stable manual states only after ordinary placements and removals are complete.
+        // In particular, don't switch a lever while there are still blocks to build around its circuit.
+        boolean structuralWorkPending = !placeable.isEmpty()
+                || !deferredForSupport.isEmpty()
+                || !deferredForPlacementFailure.isEmpty()
+                || !waitingForPlacementRetry.isEmpty()
+                || !missing.isEmpty()
+                || !flowingLiquids.isEmpty();
+        if (!structuralWorkPending && !interactable.isEmpty()) {
+            List<Goal> interactionGoals = new ArrayList<>();
+            interactable.forEach(pos -> interactionGoals.add(new GoalGetToBlock(pos)));
+            return new GoalComposite(interactionGoals.toArray(new Goal[0]));
+        }
+
         if (toBreak.isEmpty()) {
             if (logMissing && !deferredForPlacementFailure.isEmpty()) {
                 String examples = deferredForPlacementFailure.stream()
