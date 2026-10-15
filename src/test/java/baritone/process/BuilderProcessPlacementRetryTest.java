@@ -474,6 +474,24 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void failedLayerSkippingHonorsManualPhaseAndStopHeight() {
+        assertTrue(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, true, true, 0, 4, 100, 10));
+        assertFalse(BuilderProcess.shouldSkipFailedStructuralLayer(
+                true, true, true, 0, 4, 100, 10));
+        assertFalse(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, false, true, 0, 4, 100, 10));
+        assertFalse(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, true, false, 0, 4, 100, 10));
+        assertTrue(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, true, true, 0, 4, 5, 10));
+        assertFalse(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, true, true, 2, 4, 5, 10));
+        assertFalse(BuilderProcess.shouldSkipFailedStructuralLayer(
+                false, true, true, 0, 4, 0, 10));
+    }
+
+    @Test
     public void layerAdvanceStopsAtSchematicDepthEvenWhenStopHeightIsLarger() {
         assertTrue(BuilderProcess.hasMoreStructuralLayers(0, 4, 100, 10));
         assertTrue(BuilderProcess.hasMoreStructuralLayers(1, 4, 100, 10));
