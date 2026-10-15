@@ -174,6 +174,43 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void placementCanBeFollowedByManualStableStateAdjustment() {
+        BlockState defaultRepeater = Blocks.REPEATER.defaultBlockState()
+                .setValue(RepeaterBlock.DELAY, 1);
+        BlockState delayedRepeater = defaultRepeater.setValue(RepeaterBlock.DELAY, 4);
+        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
+        BlockState openDoor = closedDoor.setValue(DoorBlock.OPEN, true);
+        BlockState unpoweredLever = Blocks.LEVER.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
+        BlockState poweredLever = unpoweredLever.setValue(
+                net.minecraft.world.level.block.LeverBlock.POWERED, true
+        );
+
+        assertTrue(BuilderProcess.isCompatiblePlacementPrediction(
+                defaultRepeater, delayedRepeater, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isCompatiblePlacementPrediction(
+                closedDoor, openDoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isCompatiblePlacementPrediction(
+                unpoweredLever, poweredLever, false, Collections.emptyList()));
+    }
+
+    @Test
+    public void placementPredictionStillRejectsWrongStructure() {
+        BlockState northFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.NORTH);
+        BlockState eastFacing = Blocks.OAK_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, Direction.EAST);
+
+        assertFalse(BuilderProcess.isCompatiblePlacementPrediction(
+                Blocks.STONE.defaultBlockState(), Blocks.OAK_STAIRS.defaultBlockState(),
+                false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isCompatiblePlacementPrediction(
+                northFacing, eastFacing, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isCompatiblePlacementPrediction(
+                null, Blocks.OAK_STAIRS.defaultBlockState(), false, Collections.emptyList()));
+    }
+
+    @Test
     public void derivedRedstonePropertiesAreRecognizedAsDynamic() {
         BlockState wire = Blocks.REDSTONE_WIRE.defaultBlockState();
         BlockState lever = Blocks.LEVER.defaultBlockState();
