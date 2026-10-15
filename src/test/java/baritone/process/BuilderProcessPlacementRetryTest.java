@@ -34,12 +34,12 @@ import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
-import baritone.Baritone;
 import baritone.api.pathing.goals.GoalBlock;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import java.util.Collections;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -116,8 +116,8 @@ public class BuilderProcessPlacementRetryTest {
         BlockState eastFacing = Blocks.OAK_STAIRS.defaultBlockState()
                 .setValue(StairBlock.FACING, Direction.EAST);
 
-        assertTrue(BuilderProcess.sameBlockstate(unpoweredWire, poweredWire));
-        assertFalse(BuilderProcess.sameBlockstate(northFacing, eastFacing));
+        assertTrue(BuilderProcess.sameBlockstate(unpoweredWire, poweredWire, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.sameBlockstate(northFacing, eastFacing, false, Collections.emptyList()));
     }
 
     @Test
@@ -177,9 +177,9 @@ public class BuilderProcessPlacementRetryTest {
         BlockState closedGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, false);
         BlockState openGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, true);
 
-        assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor));
-        assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor));
-        assertTrue(BuilderProcess.needsManualInteraction(closedGate, openGate));
+        assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(closedGate, openGate, false, Collections.emptyList()));
     }
 
     @Test
@@ -191,24 +191,18 @@ public class BuilderProcessPlacementRetryTest {
         BlockState comparatorSubtract = Blocks.COMPARATOR.defaultBlockState()
                 .setValue(ComparatorBlock.MODE, ComparatorMode.SUBTRACT);
 
-        assertTrue(BuilderProcess.needsManualInteraction(repeaterOne, repeaterTwo));
-        assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract));
+        assertTrue(BuilderProcess.needsManualInteraction(repeaterOne, repeaterTwo, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "powered")));
         assertFalse(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "delay")));
     }
 
     @Test
     public void manualTrapdoorStateIsNotIgnoredByIgnoreDirectionSetting() {
-        boolean original = Baritone.settings().buildIgnoreDirection.value;
-        try {
-            Baritone.settings().buildIgnoreDirection.value = true;
-            BlockState closed = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
-            BlockState open = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
-            assertFalse(BuilderProcess.sameBlockstate(closed, open));
-            assertTrue(BuilderProcess.needsManualInteraction(closed, open));
-        } finally {
-            Baritone.settings().buildIgnoreDirection.value = original;
-        }
+        BlockState closed = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
+        BlockState open = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
+        assertFalse(BuilderProcess.sameBlockstate(closed, open, true, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(closed, open, true, Collections.emptyList()));
     }
 
     @Test
@@ -223,8 +217,8 @@ public class BuilderProcessPlacementRetryTest {
                 .setValue(DoorBlock.OPEN, false)
                 .setValue(DoorBlock.POWERED, true);
 
-        assertTrue(BuilderProcess.needsManualInteraction(current, desired));
-        assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired));
+        assertTrue(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired, false, Collections.emptyList()));
     }
 
     @Test
@@ -236,8 +230,8 @@ public class BuilderProcessPlacementRetryTest {
         BlockState daylightInverted = Blocks.DAYLIGHT_DETECTOR.defaultBlockState()
                 .setValue(DaylightDetectorBlock.INVERTED, true);
 
-        assertTrue(BuilderProcess.needsManualInteraction(note0, note5));
-        assertTrue(BuilderProcess.needsManualInteraction(daylightNormal, daylightInverted));
+        assertTrue(BuilderProcess.needsManualInteraction(note0, note5, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(daylightNormal, daylightInverted, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isDerivedStateProperty(note5, property(note5, "instrument")));
         assertTrue(BuilderProcess.isDerivedStateProperty(note5, property(note5, "powered")));
     }
@@ -253,7 +247,7 @@ public class BuilderProcessPlacementRetryTest {
                 property(Blocks.OAK_DOOR.defaultBlockState(), "powered")
         ));
         assertFalse(BuilderProcess.isManualInteractionProperty(button, property(button, "powered")));
-        assertFalse(BuilderProcess.needsManualInteraction(unpowered, powered));
+        assertFalse(BuilderProcess.needsManualInteraction(unpowered, powered, false, Collections.emptyList()));
     }
 
     @Test
@@ -263,8 +257,8 @@ public class BuilderProcessPlacementRetryTest {
         BlockState northDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.NORTH);
         BlockState eastDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.EAST);
 
-        assertTrue(BuilderProcess.needsManualInteraction(unpoweredLever, poweredLever));
-        assertFalse(BuilderProcess.needsManualInteraction(northDoor, eastDoor));
+        assertTrue(BuilderProcess.needsManualInteraction(unpoweredLever, poweredLever, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.needsManualInteraction(northDoor, eastDoor, true, Collections.emptyList()));
     }
 
     @Test
