@@ -111,7 +111,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private HashSet<BetterBlockPos> incorrectPositions;
     private LongOpenHashSet observedCompleted; // positions that are completed even if they're out of render distance and we can't make sure right now
-    private final Set<BlockPos> deferredManualInteractionPositions = new HashSet<>();
+    private final LongOpenHashSet deferredManualInteractionPositions = new LongOpenHashSet();
     private String name;
     private ISchematic realSchematic;
     private ISchematic schematic;
@@ -1055,8 +1055,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         Baritone.settings().layerOrder.value, stopAtHeight
                 );
                 manualInteractionPhase = true;
-                for (BlockPos deferredPos : deferredManualInteractionPositions) {
-                    observedCompleted.remove(BetterBlockPos.longHash(deferredPos));
+                for (long deferredPositionHash : deferredManualInteractionPositions) {
+                    observedCompleted.remove(deferredPositionHash);
                 }
                 incorrectPositions = null;
                 return onTick(calcFailed, isSafeToCancel, recursions + 1);
@@ -1271,17 +1271,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                                     current, desired,
                                     Baritone.settings().buildIgnoreDirection.value,
                                     Baritone.settings().buildIgnoreProperties.value)) {
-                                deferredManualInteractionPositions.add(new BlockPos(pos));
+                                deferredManualInteractionPositions.add(positionHash);
                                 // Structurally complete for this pass; requeue it at the final interaction boundary.
                                 observedCompleted.add(positionHash);
                             } else {
                                 if (valid(current, desired, false)) {
-                                    deferredManualInteractionPositions.remove(pos);
+                                    deferredManualInteractionPositions.remove(positionHash);
                                 }
                                 observedCompleted.add(positionHash);
                             }
                         } else {
-                            deferredManualInteractionPositions.remove(pos);
+                            deferredManualInteractionPositions.remove(positionHash);
                             incorrectPositions.add(pos);
                             observedCompleted.remove(positionHash);
                         }
@@ -1327,16 +1327,16 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                                     current, desired,
                                     Baritone.settings().buildIgnoreDirection.value,
                                     Baritone.settings().buildIgnoreProperties.value)) {
-                                deferredManualInteractionPositions.add(new BlockPos(pos));
+                                deferredManualInteractionPositions.add(positionHash);
                                 observedCompleted.add(positionHash);
                             } else {
                                 if (valid(current, desired, false)) {
-                                    deferredManualInteractionPositions.remove(pos);
+                                    deferredManualInteractionPositions.remove(positionHash);
                                 }
                                 observedCompleted.add(positionHash);
                             }
                         } else {
-                            deferredManualInteractionPositions.remove(pos);
+                            deferredManualInteractionPositions.remove(positionHash);
                             incorrectPositions.add(pos);
                             observedCompleted.remove(BetterBlockPos.longHash(blockX, blockY, blockZ));
                             if (incorrectPositions.size() > Baritone.settings().incorrectSize.value) {
