@@ -48,3 +48,8 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 ## Verification boundary
 
 Last successful baseline: commit `ebd50327d54ff4534d5aac829864c9ca77caf8b5`, [GitHub Actions run #38712133089](https://github.com/2015zander15-netizen/its-cool/actions/runs/38712133089), passed unit tests and the Fabric remapped JAR build. The newer placement-prediction, expanded packed-array/multi-region tests, and unsupported-payload warning are in newer commits; they must be judged by their own newest run before distributing a bundle. CI cannot prove live block placement, movement under server conditions, block-entity restoration, or calculator functionality. Those remain unproven until real Minecraft acceptance tests are performed.
+## Verification boundaries
+
+The GitHub Actions workflow validates the integrated source snapshot by running the repository's Gradle unit tests and building the Fabric remapped JAR on Java 21. The unit tests exercise deterministic helper logic (schematic volume bounds, placement retry/backoff, support-face selection, state comparison, manual interaction classification, inventory-slot selection, and player/approach geometry). The workflow also packages the exact patched source and generated diff.
+
+These checks do **not** launch a Minecraft client or server, simulate real player clicks against a live world, or prove that a complete redstone calculator works. Real-world acceptance testing is still required for server-side interaction acceptance, all block placement/support combinations, inventory changes, movement recovery, and a powered end-to-end circuit. No claim of full calculator correctness should be made until those in-game tests pass.
