@@ -269,10 +269,15 @@ public final class InventoryBehavior extends Behavior implements Helper {
         if (allowInventory) {
             for (int i = 9; i < 36; i++) {
                 if (desired.test(inv.get(i))) {
-                    if (select) {
-                        requestSwapWithHotBar(i, 7);
-                        p.getInventory().setSelectedSlot(7);
+                    if (!select) {
+                        return true;
                     }
+                    // Do not select the destination until the server/client inventory swap has
+                    // actually been issued. A delayed swap leaves the old slot contents in place.
+                    if (!requestSwapWithHotBar(i, 7)) {
+                        return false;
+                    }
+                    p.getInventory().setSelectedSlot(7);
                     return true;
                 }
             }
