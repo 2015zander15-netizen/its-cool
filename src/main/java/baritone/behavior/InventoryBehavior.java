@@ -91,9 +91,21 @@ public final class InventoryBehavior extends Behavior implements Helper {
 
     public OptionalInt getTempHotbarSlot(Predicate<Integer> disallowedHotbar) {
         // we're using 0 and 8 for pickaxe and throwaway
+        boolean[] emptySlots = new boolean[8];
+        for (int i = 1; i < 8; i++) {
+            emptySlots[i] = ctx.player().getInventory().getNonEquipmentItems().get(i).isEmpty();
+        }
+        ArrayList<Integer> candidates = getTempHotbarCandidates(emptySlots, disallowedHotbar);
+        if (candidates.isEmpty()) {
+            return OptionalInt.empty();
+        }
+        return OptionalInt.of(candidates.get(new Random().nextInt(candidates.size())));
+    }
+
+    static ArrayList<Integer> getTempHotbarCandidates(boolean[] emptySlots, Predicate<Integer> disallowedHotbar) {
         ArrayList<Integer> candidates = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
-            if (ctx.player().getInventory().getNonEquipmentItems().get(i).isEmpty() && !disallowedHotbar.test(i)) {
+            if (i < emptySlots.length && emptySlots[i] && !disallowedHotbar.test(i)) {
                 candidates.add(i);
             }
         }
@@ -112,10 +124,7 @@ public final class InventoryBehavior extends Behavior implements Helper {
                 candidates.add(i);
             }
         }
-        if (candidates.isEmpty()) {
-            return OptionalInt.empty();
-        }
-        return OptionalInt.of(candidates.get(new Random().nextInt(candidates.size())));
+        return candidates;
     }
 
     private boolean requestSwapWithHotBar(int inInventory, int inHotbar) {
