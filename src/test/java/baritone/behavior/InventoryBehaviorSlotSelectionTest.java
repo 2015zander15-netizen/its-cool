@@ -26,8 +26,11 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class InventoryBehaviorSlotSelectionTest {
@@ -52,6 +55,30 @@ public class InventoryBehaviorSlotSelectionTest {
         assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, ItemStack.EMPTY));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(ItemStack.EMPTY, exact));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(null, exact));
+    }
+
+    @Test
+    public void pendingInventoryMoveHasPriorityOverAutomaticMoves() {
+        int[] pending = {12, 5};
+
+        assertArrayEquals(pending, InventoryBehavior.chooseNextInventoryMove(pending, 20, 15));
+        assertArrayEquals(pending, InventoryBehavior.chooseNextInventoryMove(pending, -1, -1));
+    }
+
+    @Test
+    public void throwawayMoveHasPriorityOverToolMove() {
+        assertArrayEquals(new int[]{17, 8}, InventoryBehavior.chooseNextInventoryMove(null, 17, 12));
+    }
+
+    @Test
+    public void toolMoveIsSelectedWhenNoThrowawayNeedsMoving() {
+        assertArrayEquals(new int[]{13, 0}, InventoryBehavior.chooseNextInventoryMove(null, -1, 13));
+    }
+
+    @Test
+    public void noAutomaticInventoryMoveIsReturnedWhenNotNeeded() {
+        assertNull(InventoryBehavior.chooseNextInventoryMove(null, -1, -1));
+        assertNotNull(InventoryBehavior.chooseNextInventoryMove(new int[]{9, 3}, -1, -1));
     }
 
     @Test
