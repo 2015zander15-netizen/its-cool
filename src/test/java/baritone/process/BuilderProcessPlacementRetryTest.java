@@ -583,6 +583,44 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void failedPlacementApproachIsExcludedButAnotherNeighborRemainsReachable() {
+        BlockPos target = new BlockPos(5, 64, 5);
+        BlockPos failedFeet = new BlockPos(4, 64, 5);
+        BlockPos alternateFeet = new BlockPos(6, 64, 5);
+        BuilderProcess.GoalPlacementApproach goal = new BuilderProcess.GoalPlacementApproach(
+                target, Collections.singleton(failedFeet), true
+        );
+
+        assertFalse(goal.isInGoal(failedFeet.getX(), failedFeet.getY(), failedFeet.getZ()));
+        assertTrue(goal.isInGoal(alternateFeet.getX(), alternateFeet.getY(), alternateFeet.getZ()));
+        assertFalse(goal.isInGoal(target.getX(), target.getY(), target.getZ()));
+        assertFalse(goal.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
+    }
+
+    @Test
+    public void approachGoalIdentityChangesWhenFailedPositionsChange() {
+        BlockPos target = new BlockPos(5, 64, 5);
+        BuilderProcess.GoalPlacementApproach first = new BuilderProcess.GoalPlacementApproach(
+                target, Collections.singleton(new BlockPos(4, 64, 5)), true
+        );
+        BuilderProcess.GoalPlacementApproach second = new BuilderProcess.GoalPlacementApproach(
+                target, Collections.singleton(new BlockPos(6, 64, 5)), true
+        );
+
+        assertFalse(first.equals(second));
+        assertFalse(first.hashCode() == second.hashCode());
+    }
+
+    @Test
+    public void onlyNearbyFeetPositionsAreRecordedAsPlacementApproaches() {
+        BlockPos target = new BlockPos(5, 64, 5);
+        assertFalse(BuilderProcess.isPotentialPlacementApproach(target, target));
+        assertTrue(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(6, 64, 5)));
+        assertTrue(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(5, 65, 5)));
+        assertFalse(BuilderProcess.isPotentialPlacementApproach(target, new BlockPos(8, 64, 5)));
+    }
+
+    @Test
     public void placementApproachSupportsAllSixAdjacentSides() {
         Direction[] directions = BuilderProcess.placementSupportDirections();
 
