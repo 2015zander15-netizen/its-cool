@@ -1183,6 +1183,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<BetterBlockPos> waitingForPlacementRetry = new ArrayList<>();
         List<BetterBlockPos> waitingForInteractionRetry = new ArrayList<>();
         List<BetterBlockPos> deferredForInteraction = new ArrayList<>();
+        List<BetterBlockPos> deferredForExternalPower = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
         List<BetterBlockPos> sourceLiquids = new ArrayList<>();
         List<BetterBlockPos> flowingLiquids = new ArrayList<>();
@@ -1207,7 +1208,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 }
             } else {
                 BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), state);
-                if (needsManualInteraction(state, desired)) {
+                if (isExternallyPoweredOpenableMismatch(state, desired)) {
+                    deferredForExternalPower.add(pos);
+                } else if (needsManualInteraction(state, desired)) {
                     if (isToggleAttemptExhausted(pos, state, desired)) {
                         deferredForInteraction.add(pos);
                     } else if (isToggleAttemptWaiting(pos, state, desired)) {
@@ -1264,6 +1267,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         .collect(Collectors.joining("; "));
                 logDirect("Placement was repeatedly rejected at " + examples
                         + ". Check interaction reach, the support face, inventory, and server permissions.");
+            }
+            if (logMissing && !deferredForExternalPower.isEmpty()) {
+                String examples = deferredForExternalPower.stream()
+                        .limit(5)
+                        .map(p -> String.format("%s,%s,%s",
+                                SettingsUtil.maybeCensor(p.getX()),
+                                SettingsUtil.maybeCensor(p.getY()),
+                                SettingsUtil.maybeCensor(p.getZ())))
+                        .collect(Collectors.joining("; "));
+                logDirect("Open state remains controlled by an active redstone signal at " + examples
+                        + ". Build or disable the power source before this block can match the schematic.");
             }
             if (logMissing && !deferredForInteraction.isEmpty()) {
                 String examples = deferredForInteraction.stream()
