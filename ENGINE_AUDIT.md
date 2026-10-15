@@ -21,7 +21,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Direction-dependent placement (stairs, logs, repeaters, observers, pistons, dispensers).
 - Support dependencies and placement order (torches, rails, buttons, redstone components, plants); the builder now defers goals until `canSurvive` succeeds, but this still needs acceptance testing.
 - Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update; confirm the derived-state comparison does not hide missing connections in the acceptance circuit.
-- Inventory refill and slot selection when required items are in the main inventory rather than the hotbar; selection now waits for a successful swap, and `MovementHelper` remains in `ATTEMPTING` until the requested stack really occupies the selected hotbar slot.
+- Inventory refill and slot selection when required items are in the main inventory rather than the hotbar; selection waits for a successful swap, movement remains in `ATTEMPTING` until the stack is selected, and inventory clicks are deferred while a non-inventory container is open.
 - Server rejection and delayed block updates still need in-game acceptance testing to tune retry behavior and false positives.
 - Stateful interaction timing needs live testing, especially paired door halves and levers affected by external redstone.
 - Fluids, environmental requirements, and block-entity contents; these need separate support work.
