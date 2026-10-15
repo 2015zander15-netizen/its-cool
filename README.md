@@ -64,7 +64,7 @@ Each run clones the upstream branch, overlays the staged Litematica loader, buil
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
-Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. The test suite uses one shared `MinecraftTestBootstrap` helper so both loader and builder tests initialize Minecraft's version and registries exactly once per test JVM. The current phase-separation, layer-boundary, interaction, loader-safety, and pathing changes must be judged from their own completed run. Do not treat the newest interaction/cooldown revision as verified until its own run passes both tests and the Fabric remapped JAR build. CI covers schematic loader safety, interaction decision logic, and compile-time integration, not live block placement or redstone behavior.
+Verified bundle: commit `379abd50490e8ee26e65146cb866d6039636fe53`, [GitHub Actions run #38705698894](https://github.com/2015zander15-netizen/its-cool/actions/runs/38705698894). Its JUnit report shows 118 tests, 0 failures, and 0 errors; the Fabric remapped JAR build also succeeded. Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. The test suite uses one shared `MinecraftTestBootstrap` helper so loader and builder tests initialize Minecraft's version and registries exactly once per test JVM. CI covers schematic loader safety, interaction decision logic, and compile-time integration, but cannot prove live block placement, pathing, or redstone circuit behavior.
 
 ## Known unfinished work
 
