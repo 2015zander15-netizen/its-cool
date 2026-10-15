@@ -136,15 +136,18 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param properties List of Properties the block has.
      * @return A blockState.
      */
-    private static BlockState getBlockState(Block block, CompoundTag properties) {
+    static BlockState getBlockState(Block block, CompoundTag properties) {
         BlockState blockState = block.defaultBlockState();
 
         for (Object key : properties.keySet()) {
-            Property<?> property = block.getStateDefinition().getProperty((String) key);
-            String propertyValue = properties.getStringOr((String) key, "");
-            if (property != null) {
-                blockState = setPropertyValue(blockState, property, propertyValue);
+            String propertyName = (String) key;
+            Property<?> property = block.getStateDefinition().getProperty(propertyName);
+            if (property == null) {
+                throw new IllegalArgumentException("Unknown block-state property "
+                        + propertyName + " for Litematica block " + BuiltInRegistries.BLOCK.getKey(block));
             }
+            String propertyValue = properties.getStringOr(propertyName, "");
+            blockState = setPropertyValue(blockState, property, propertyValue);
         }
         return blockState;
     }
