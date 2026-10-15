@@ -73,6 +73,20 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsHugeCompositeBoundsFromSmallDistantRegions() {
+        CompoundTag first = region(1, 1, 1);
+        CompoundTag distant = region(1, 1, 1);
+        CompoundTag position = new CompoundTag();
+        position.putInt("x", 10_000_000);
+        position.putInt("y", 0);
+        position.putInt("z", 0);
+        distant.put("Position", position);
+
+        LitematicaSchematic.validateSchematicBudget(new CompoundTag[]{first, distant});
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsSchematicWithoutRegions() {
         LitematicaSchematic.validateSchematicBudget(new CompoundTag[0]);
     }
