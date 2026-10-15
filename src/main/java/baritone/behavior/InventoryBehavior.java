@@ -65,16 +65,25 @@ public final class InventoryBehavior extends Behavior implements Helper {
             return;
         }
         ticksSinceLastInventoryMove++;
-        if (firstValidThrowaway() >= 9) { // aka there are none on the hotbar, but there are some in main inventory
-            requestSwapWithHotBar(firstValidThrowaway(), 8);
+
+        // A deferred swap has priority. Otherwise an automatic tool/throwaway request could overwrite
+        // the queued source/destination while the cooldown or stationary guard is still blocking it.
+        if (lastTickRequestedMove != null) {
+            int[] pendingMove = lastTickRequestedMove;
+            logDebug("Retrying queued inventory move " + pendingMove[0] + " -> " + pendingMove[1]);
+            requestSwapWithHotBar(pendingMove[0], pendingMove[1]);
+            return;
         }
+
+        int throwaway = firstValidThrowaway();
+        if (throwaway >= 9) { // no throwaway on hotbar, but one is present in main inventory
+            requestSwapWithHotBar(throwaway, 8);
+            return;
+        }
+
         int pick = bestToolAgainst(Blocks.STONE, ItemTags.PICKAXES);
         if (pick >= 9) {
             requestSwapWithHotBar(pick, 0);
-        }
-        if (lastTickRequestedMove != null) {
-            logDebug("Remembering to move " + lastTickRequestedMove[0] + " " + lastTickRequestedMove[1] + " from a previous tick");
-            requestSwapWithHotBar(lastTickRequestedMove[0], lastTickRequestedMove[1]);
         }
     }
 
