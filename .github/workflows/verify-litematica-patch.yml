@@ -1,8 +1,8 @@
 name: Verify Baritone engine fixes
 
-# Isolate runs by ID so an orphaned/stalled runner cannot hold the branch lock forever.
+# Keep only the latest verification active for each branch, avoiding stale Gradle runs piling up.
 concurrency:
-  group: verify-engine-fixes-${{ github.ref }}-${{ github.run_id }}
+  group: verify-engine-fixes-${{ github.ref }}
   cancel-in-progress: true
 
 on:
