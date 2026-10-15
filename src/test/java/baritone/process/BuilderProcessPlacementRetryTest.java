@@ -446,6 +446,21 @@ public class BuilderProcessPlacementRetryTest {
 
     @Test
     public void finalManualInteractionPassCoversBuiltLayersButNotUnbuiltLayers() {
+        assertEquals(0, BuilderProcess.manualPhaseMinYInclusive(10, 0, true, false, 5));
+        assertEquals(4, BuilderProcess.manualPhaseMaxYInclusive(7, true, false, 5));
+        assertEquals(6, BuilderProcess.manualPhaseMinYInclusive(10, 6, true, true, 4));
+        assertEquals(9, BuilderProcess.manualPhaseMaxYInclusive(9, true, true, 4));
+
+        // Bottom-up builds clamp to stopAtHeight even if the completed last layer overshoots it.
+        assertTrue(BuilderProcess.isYIncludedInCurrentPass(
+                4, 0, 7, true,
+                BuilderProcess.manualPhaseMinYInclusive(10, 0, true, false, 5),
+                BuilderProcess.manualPhaseMaxYInclusive(7, true, false, 5)));
+        assertFalse(BuilderProcess.isYIncludedInCurrentPass(
+                5, 0, 7, true,
+                BuilderProcess.manualPhaseMinYInclusive(10, 0, true, false, 5),
+                BuilderProcess.manualPhaseMaxYInclusive(7, true, false, 5)));
+
         assertTrue(BuilderProcess.isYIncludedInCurrentPass(2, 0, 3, false, 0, 3));
         assertFalse(BuilderProcess.isYIncludedInCurrentPass(5, 0, 3, false, 0, 3));
 
