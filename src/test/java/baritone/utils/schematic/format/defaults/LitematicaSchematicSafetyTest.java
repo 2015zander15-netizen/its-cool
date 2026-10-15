@@ -35,6 +35,23 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test
+    public void paletteBitWidthUsesExactIntegerBoundaries() {
+        assertEquals(2, LitematicaSchematic.getBitsPerBlock(1));
+        assertEquals(2, LitematicaSchematic.getBitsPerBlock(2));
+        assertEquals(2, LitematicaSchematic.getBitsPerBlock(4));
+        assertEquals(3, LitematicaSchematic.getBitsPerBlock(5));
+        assertEquals(3, LitematicaSchematic.getBitsPerBlock(8));
+        assertEquals(4, LitematicaSchematic.getBitsPerBlock(9));
+        assertEquals(5, LitematicaSchematic.getBitsPerBlock(32));
+        assertEquals(16, LitematicaSchematic.getBitsPerBlock(65_536));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsEmptyPaletteBitWidth() {
+        LitematicaSchematic.getBitsPerBlock(0);
+    }
+
+    @Test
     public void calculatesOrdinaryRegionVolume() {
         assertEquals(6_000L, LitematicaSchematic.getVolume(region(10, 20, 30)));
     }
