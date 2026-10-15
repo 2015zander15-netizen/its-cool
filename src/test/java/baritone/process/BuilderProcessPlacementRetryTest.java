@@ -30,6 +30,7 @@ import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.TripWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
@@ -241,6 +242,28 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "powered")));
         assertFalse(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "delay")));
+    }
+
+    @Test
+    public void repeaterLockStateIsDerivedButDelayRemainsStructural() {
+        BlockState unlockedRepeater = Blocks.REPEATER.defaultBlockState()
+                .setValue(RepeaterBlock.LOCKED, false)
+                .setValue(RepeaterBlock.DELAY, 1);
+        BlockState lockedRepeater = unlockedRepeater.setValue(RepeaterBlock.LOCKED, true);
+        BlockState differentDelay = unlockedRepeater.setValue(RepeaterBlock.DELAY, 2);
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(lockedRepeater, property(lockedRepeater, "locked")));
+        assertTrue(BuilderProcess.sameBlockstate(unlockedRepeater, lockedRepeater, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.sameBlockstate(unlockedRepeater, differentDelay, false, Collections.emptyList()));
+    }
+
+    @Test
+    public void tripwireAttachmentIsNeighborDerived() {
+        BlockState detached = Blocks.TRIPWIRE.defaultBlockState().setValue(TripWireBlock.ATTACHED, false);
+        BlockState attached = detached.setValue(TripWireBlock.ATTACHED, true);
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(attached, property(attached, "attached")));
+        assertTrue(BuilderProcess.sameBlockstate(detached, attached, false, Collections.emptyList()));
     }
 
     @Test
