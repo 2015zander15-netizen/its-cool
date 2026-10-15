@@ -426,6 +426,17 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void placementApproachSupportsAllSixAdjacentSides() {
+        Direction[] directions = BuilderProcess.placementSupportDirections();
+
+        assertEquals(6, directions.length);
+        for (Direction direction : Direction.values()) {
+            assertTrue(java.util.Arrays.asList(directions).contains(direction));
+        }
+        assertTrue(java.util.Arrays.asList(directions).contains(Direction.UP));
+    }
+
+    @Test
     public void supportFacePointsFromSupportBackTowardTarget() {
         for (Direction targetToSupport : Direction.values()) {
             assertEquals(targetToSupport.getOpposite(),
