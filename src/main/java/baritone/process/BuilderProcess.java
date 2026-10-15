@@ -301,6 +301,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void build(String name, ISchematic schematic, Vec3i origin) {
         reportUnsupportedLitematicaPayload(schematic);
         placementAttempts.clear();
+        placementApproachFailures.clear();
         toggleAttempts.clear();
         deferredManualInteractionPositions.clear();
         observedCompleted = new LongOpenHashSet();
@@ -385,6 +386,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void resume() {
         resetPathFailureTracking();
         placementAttempts.clear();
+        placementApproachFailures.clear();
         toggleAttempts.clear();
         paused = false;
     }
@@ -616,6 +618,94 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return targetBounds.intersects(playerBounds);
     }
 
+    static boolean isPotentialPlacementApproach(BlockPos target, BlockPos feet) {
+        if (target.equals(feet)) {
+            return false;
+        }
+        int dx = feet.getX() - target.getX();
+        int dy = feet.getY() - target.getY();
+        int dz = feet.getZ() - target.getZ();
+        return Math.abs(dx) + Math.abs(dy < 0 ? dy + 1 : dy) + Math.abs(dz) <= 1;
+    }
+
+    private Map<BlockPos, BlockState> getAdjacentBlockStates(BlockPos target) {
+        Map<BlockPos, BlockState> states = new HashMap<>();
+        for (Direction direction : Direction.values()) {
+            BlockPos neighbor = target.relative(direction);
+            states.put(new BlockPos(neighbor), ctx.world().getBlockState(neighbor));
+        }
+        return states;
+    }
+
+    private boolean approachFailureSnapshotMatches(PlacementApproachFailure failure, BlockState current,
+            BlockState desired, Map<BlockPos, BlockState> surroundingStates) {
+        return failure != null
+                && failure.targetState.equals(current)
+                && sameBlockstate(failure.desiredState, desired)
+                && failure.surroundingStates.equals(surroundingStates);
+    }
+
+    private void recordPlacementApproachFailure(BlockPos target, BlockState current,
+            BlockState desired, BlockPos feet) {
+        if (!isPotentialPlacementApproach(target, feet)
+                || targetIntersectsPlayerBounds(target, ctx.player().getBoundingBox())) {
+            return;
+        }
+        boolean hasHotbarCandidate = false;
+        for (int slot = 0; slot < 9 && slot < approxPlaceable.size(); slot++) {
+            if (itemCouldPotentiallyPlace(approxPlaceable.get(slot), desired)) {
+                hasHotbarCandidate = true;
+                break;
+            }
+        }
+        if (!hasHotbarCandidate) {
+            return;
+        }
+
+        Map<BlockPos, BlockState> adjacentStates = getAdjacentBlockStates(target);
+        PlacementApproachFailure failure = placementApproachFailures.get(target);
+        if (!approachFailureSnapshotMatches(failure, current, desired, adjacentStates)) {
+            if (failure == null && placementApproachFailures.size() >= MAX_PLACEMENT_APPROACH_FAILURES) {
+                Iterator<BlockPos> oldest = placementApproachFailures.keySet().iterator();
+                if (oldest.hasNext()) {
+                    oldest.next();
+                    oldest.remove();
+                }
+            }
+            failure = new PlacementApproachFailure(current, desired, adjacentStates);
+            placementApproachFailures.put(new BlockPos(target), failure);
+        }
+        failure.failedFeetPositions.add(new BlockPos(feet));
+    }
+
+    private Set<BlockPos> failedPlacementApproaches(BlockPos target, BlockState current, BlockState desired) {
+        PlacementApproachFailure failure = placementApproachFailures.get(target);
+        if (failure == null) {
+            return Collections.emptySet();
+        }
+        if (!approachFailureSnapshotMatches(failure, current, desired, getAdjacentBlockStates(target))) {
+            placementApproachFailures.remove(target);
+            return Collections.emptySet();
+        }
+        return new HashSet<>(failure.failedFeetPositions);
+    }
+
+    private void cleanupPlacementApproachFailures(BuilderCalculationContext bcc) {
+        Iterator<Map.Entry<BlockPos, PlacementApproachFailure>> iterator =
+                placementApproachFailures.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos, PlacementApproachFailure> entry = iterator.next();
+            BlockPos target = entry.getKey();
+            BlockState current = bcc.bsi.get0(target);
+            BlockState desired = bcc.getSchematic(target.getX(), target.getY(), target.getZ(), current);
+            if (desired == null || valid(current, desired, false)
+                    || !approachFailureSnapshotMatches(
+                            entry.getValue(), current, desired, getAdjacentBlockStates(target))) {
+                iterator.remove();
+            }
+        }
+    }
+
     private Optional<Placement> searchForPlacables(BuilderCalculationContext bcc, List<BlockState> desirableOnHotbar) {
         BetterBlockPos center = ctx.playerFeet();
         AABB playerBounds = ctx.player().getBoundingBox();
@@ -648,6 +738,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         if (opt.isPresent()) {
                             return opt;
                         }
+                        recordPlacementApproachFailure(target, curr, desired, center);
                     }
                 }
             }
@@ -1118,6 +1209,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         BuilderCalculationContext bcc = new BuilderCalculationContext();
         cleanupPlacementAttempts(bcc);
+        cleanupPlacementApproachFailures(bcc);
         cleanupToggleAttempts(bcc);
         if (!recalc(bcc)) {
             if (!manualInteractionPhase) {
@@ -1130,6 +1222,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     layer++;
                     incorrectPositions = null;
                     placementAttempts.clear();
+        placementApproachFailures.clear();
                     toggleAttempts.clear();
                     return onTick(calcFailed, isSafeToCancel, recursions + 1);
                 }
@@ -1170,6 +1263,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             incorrectPositions = null;
             deferredManualInteractionPositions.clear();
             placementAttempts.clear();
+        placementApproachFailures.clear();
             toggleAttempts.clear();
             if (!Baritone.settings().buildRepeatSneaky.value) {
                 schematic.reset();
@@ -1853,6 +1947,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public void onLostControl() {
         placementAttempts.clear();
+        placementApproachFailures.clear();
         toggleAttempts.clear();
         deferredManualInteractionPositions.clear();
         builderTick = 0;
