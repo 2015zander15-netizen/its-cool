@@ -20,7 +20,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Reuses validated dimensions before region-array allocation.
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
 - Caps aggregate volume and nested column-array counts across all regions before allocating arrays.
-- Rejects empty/unknown block palettes, invalid palette indices, and truncated packed `BlockStates` arrays.
+- Rejects empty/unknown block palettes, unknown block-state property names, invalid property values, invalid palette indices, and truncated packed `BlockStates` arrays.
 
 ### Builder placement prediction safety
 `src/main/java/baritone/process/BuilderProcess.java`
