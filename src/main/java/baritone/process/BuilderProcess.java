@@ -111,6 +111,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private HashSet<BetterBlockPos> incorrectPositions;
     private LongOpenHashSet observedCompleted; // positions that are completed even if they're out of render distance and we can't make sure right now
+    private final Set<BlockPos> deferredManualInteractionPositions = new HashSet<>();
     private String name;
     private ISchematic realSchematic;
     private ISchematic schematic;
@@ -180,6 +181,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return y >= minY && y <= maxY;
     }
 
+    static boolean isDeferredManualStateMismatch(BlockState current, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties) {
+        return !valid(current, desired, false)
+                && !isStructuralWorkMismatch(current, desired, ignoreDirection, ignoredProperties);
+    }
+
     static int placementRetryDelayTicks(int attemptNumber) {
         if (attemptNumber < 1) {
             throw new IllegalArgumentException("attemptNumber must be at least 1");
@@ -196,6 +203,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void build(String name, ISchematic schematic, Vec3i origin) {
         placementAttempts.clear();
         toggleAttempts.clear();
+        deferredManualInteractionPositions.clear();
+        observedCompleted = new LongOpenHashSet();
+        incorrectPositions = null;
         builderTick = 0;
         manualInteractionPhase = false;
         lastRequestedGoal = null;
@@ -994,6 +1004,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 manualPhaseMinY = currentLayerMinYInclusive;
                 manualPhaseMaxY = currentLayerMaxYInclusive;
                 manualInteractionPhase = true;
+                for (BlockPos deferredPos : deferredManualInteractionPositions) {
+                    observedCompleted.remove(BetterBlockPos.longHash(deferredPos));
+                }
                 incorrectPositions = null;
                 return onTick(calcFailed, isSafeToCancel, recursions + 1);
             }
@@ -1013,6 +1026,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             origin = new BlockPos(origin).offset(repeat);
             manualInteractionPhase = false;
             incorrectPositions = null;
+            deferredManualInteractionPositions.clear();
             placementAttempts.clear();
             toggleAttempts.clear();
             if (!Baritone.settings().buildRepeatSneaky.value) {
@@ -1197,17 +1211,26 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         // we care about this position
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
                         BlockState current = bcc.bsi.get0(x, y, z);
+                        long positionHash = BetterBlockPos.longHash(pos);
                         if (validForCurrentBuildPhase(current, desired)) {
                             incorrectPositions.remove(pos);
-                            if (manualInteractionPhase || valid(current, desired, false)) {
-                                observedCompleted.add(BetterBlockPos.longHash(pos));
+                            if (!manualInteractionPhase && isDeferredManualStateMismatch(
+                                    current, desired,
+                                    Baritone.settings().buildIgnoreDirection.value,
+                                    Baritone.settings().buildIgnoreProperties.value)) {
+                                deferredManualInteractionPositions.add(new BlockPos(pos));
+                                // Structurally complete for this pass; requeue it at the final interaction boundary.
+                                observedCompleted.add(positionHash);
                             } else {
-                                // Structural pass only: remember that this position still needs its stable state toggled.
-                                observedCompleted.remove(BetterBlockPos.longHash(pos));
+                                if (valid(current, desired, false)) {
+                                    deferredManualInteractionPositions.remove(pos);
+                                }
+                                observedCompleted.add(positionHash);
                             }
                         } else {
+                            deferredManualInteractionPositions.remove(pos);
                             incorrectPositions.add(pos);
-                            observedCompleted.remove(BetterBlockPos.longHash(pos));
+                            observedCompleted.remove(positionHash);
                         }
                     }
                 }
@@ -1244,16 +1267,25 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     if (bcc.bsi.worldContainsLoadedChunk(blockX, blockZ)) { // check if its in render distance, not if its in cache
                         // we can directly observe this block, it is in render distance
                         BlockState desired = schematic.desiredState(x, y, z, current, this.approxPlaceable);
-                        if (validForCurrentBuildPhase(bcc.bsi.get0(blockX, blockY, blockZ), desired)) {
-                            long positionHash = BetterBlockPos.longHash(blockX, blockY, blockZ);
-                            if (manualInteractionPhase || valid(current, desired, false)) {
+                        BlockPos pos = new BetterBlockPos(blockX, blockY, blockZ);
+                        long positionHash = BetterBlockPos.longHash(pos);
+                        BlockState current = bcc.bsi.get0(pos);
+                        if (validForCurrentBuildPhase(current, desired)) {
+                            if (!manualInteractionPhase && isDeferredManualStateMismatch(
+                                    current, desired,
+                                    Baritone.settings().buildIgnoreDirection.value,
+                                    Baritone.settings().buildIgnoreProperties.value)) {
+                                deferredManualInteractionPositions.add(new BlockPos(pos));
                                 observedCompleted.add(positionHash);
                             } else {
-                                // Do not let the structural pass hide a pending toggle after its chunk unloads.
-                                observedCompleted.remove(positionHash);
+                                if (valid(current, desired, false)) {
+                                    deferredManualInteractionPositions.remove(pos);
+                                }
+                                observedCompleted.add(positionHash);
                             }
                         } else {
-                            incorrectPositions.add(new BetterBlockPos(blockX, blockY, blockZ));
+                            deferredManualInteractionPositions.remove(pos);
+                            incorrectPositions.add(pos);
                             observedCompleted.remove(BetterBlockPos.longHash(blockX, blockY, blockZ));
                             if (incorrectPositions.size() > Baritone.settings().incorrectSize.value) {
                                 return;
@@ -1666,6 +1698,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void onLostControl() {
         placementAttempts.clear();
         toggleAttempts.clear();
+        deferredManualInteractionPositions.clear();
         builderTick = 0;
         manualInteractionPhase = false;
         lastRequestedGoal = null;
