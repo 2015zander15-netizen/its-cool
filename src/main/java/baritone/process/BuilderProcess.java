@@ -619,7 +619,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     static boolean isPotentialPlacementApproach(BlockPos target, BlockPos feet) {
-        if (target.equals(feet)) {
+        if (target.equals(feet) || feet.getY() < target.getY() - 1) {
             return false;
         }
         int dx = feet.getX() - target.getX();
@@ -688,22 +688,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return Collections.emptySet();
         }
         return new HashSet<>(failure.failedFeetPositions);
-    }
-
-    private void cleanupPlacementApproachFailures(BuilderCalculationContext bcc) {
-        Iterator<Map.Entry<BlockPos, PlacementApproachFailure>> iterator =
-                placementApproachFailures.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<BlockPos, PlacementApproachFailure> entry = iterator.next();
-            BlockPos target = entry.getKey();
-            BlockState current = bcc.bsi.get0(target);
-            BlockState desired = bcc.getSchematic(target.getX(), target.getY(), target.getZ(), current);
-            if (desired == null || valid(current, desired, false)
-                    || !approachFailureSnapshotMatches(
-                            entry.getValue(), current, desired, getAdjacentBlockStates(target))) {
-                iterator.remove();
-            }
-        }
     }
 
     private Optional<Placement> searchForPlacables(BuilderCalculationContext bcc, List<BlockState> desirableOnHotbar) {
@@ -1209,7 +1193,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         BuilderCalculationContext bcc = new BuilderCalculationContext();
         cleanupPlacementAttempts(bcc);
-        cleanupPlacementApproachFailures(bcc);
         cleanupToggleAttempts(bcc);
         if (!recalc(bcc)) {
             if (!manualInteractionPhase) {
