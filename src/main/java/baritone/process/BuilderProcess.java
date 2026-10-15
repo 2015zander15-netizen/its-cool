@@ -628,7 +628,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private boolean isToggleAttemptWaiting(BlockPos pos, BlockState current, BlockState desired) {
         ToggleAttempt attempt = toggleAttempts.get(pos);
-        return attempt != null && attempt.attempts < MAX_PLACEMENT_ATTEMPTS
+        return attempt != null
                 && builderTick < attempt.retryAtTick
                 && sameBlockstate(attempt.originalState, current)
                 && sameBlockstate(attempt.desiredState, desired);
