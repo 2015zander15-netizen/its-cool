@@ -47,7 +47,7 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-Each run clones the upstream branch, overlays the staged Litematica loader, builder process, path executor, and both regression-test files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. It uploads:
+Each run clones the upstream branch, overlays the staged Litematica loader, builder process, path executor, and both regression-test files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. The newest source edits require their own successful run; older artifacts may omit later fixes. It uploads:
 - `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source and tests
 
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
