@@ -181,6 +181,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return y >= minY && y <= maxY;
     }
 
+    static boolean manualInteractionsAllowed(boolean manualInteractionPhase, boolean noStructuralWork) {
+        return manualInteractionPhase && noStructuralWork;
+    }
+
     static boolean isDeferredManualStateMismatch(BlockState current, BlockState desired,
             boolean ignoreDirection, List<String> ignoredProperties) {
         return !valid(current, desired, false)
@@ -1086,9 +1090,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             trim();
         }
 
-        Optional<Tuple<BetterBlockPos, Rotation>> toToggle = canBeginManualInteractions(bcc)
-                ? toToggleNearPlayer(bcc)
-                : Optional.empty();
+        Optional<Tuple<BetterBlockPos, Rotation>> toToggle =
+                manualInteractionsAllowed(manualInteractionPhase, canBeginManualInteractions(bcc))
+                        ? toToggleNearPlayer(bcc)
+                        : Optional.empty();
         if (toToggle.isPresent() && isSafeToCancel && ctx.player().onGround()) {
             Rotation rot = toToggle.get().getB();
             BetterBlockPos pos = toToggle.get().getA();
