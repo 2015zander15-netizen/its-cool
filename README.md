@@ -21,6 +21,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
 - Caps aggregate region volume, all nested 3D-array objects (intermediate plus column arrays), and composite bounding-box scan volume across all regions before allocating arrays.
 - Rejects empty/unknown block palettes, palettes above 65,536 entries, non-compound palette entries or `Properties` values, unknown block-state property names, invalid property values, invalid palette indices, and truncated packed `BlockStates` arrays.
+- Counts per-region `TileEntities`/`BlockEntities` and `Entities` records and warns before building when the schematic contains payloads the builder does not restore.
 - Computes palette bit width with exact integer arithmetic and includes regression tests at power-of-two palette boundaries.
 - Regression tests exercise a complete one-block Litematica NBT decode and verify an invalid packed palette index is rejected during decoding.
 
@@ -71,7 +72,7 @@ Verified bundle: commit `379abd50490e8ee26e65146cb866d6039636fe53`, [GitHub Acti
 
 - In-game acceptance testing for orientation, supports, partial collision shapes, inventory refill, server-rejected placements, and neighbor-derived states.
 - A reproducible stuck-path case before changing movement/pathing heuristics.
-- Validation of block-entity NBT, inventories, fluids, and other schematic-format features.
+- Actual restoration of block-entity NBT, container inventories, entities, fluids, and other schematic-format features remains unsupported; the loader now warns instead of silently implying those records were reproduced.
 - A small redstone test circuit before attempting a 64-bit calculator.
 
 Do not claim a working calculator, automated farms, or universal fast-build mode is complete. No world-editing bypass is intended: building must use normal placement, actual inventory, support blocks, world updates, and server rules.
