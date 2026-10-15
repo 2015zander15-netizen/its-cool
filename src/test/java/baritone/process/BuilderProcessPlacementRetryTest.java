@@ -218,13 +218,18 @@ public class BuilderProcessPlacementRetryTest {
         BlockState furnace = Blocks.FURNACE.defaultBlockState();
         BlockState hopper = Blocks.HOPPER.defaultBlockState();
         BlockState dispenser = Blocks.DISPENSER.defaultBlockState();
+        BlockState repeater = Blocks.REPEATER.defaultBlockState();
+        BlockState comparator = Blocks.COMPARATOR.defaultBlockState();
 
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "power")));
         assertTrue(BuilderProcess.isDerivedStateProperty(wire, property(wire, "north")));
+        // Lever POWERED is a stable, manually toggled setting, so the builder must compare it.
         assertFalse(BuilderProcess.isDerivedStateProperty(lever, property(lever, "powered")));
         assertTrue(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "shape")));
         assertTrue(BuilderProcess.isDerivedStateProperty(hopper, property(hopper, "enabled")));
         assertTrue(BuilderProcess.isDerivedStateProperty(dispenser, property(dispenser, "triggered")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(repeater, property(repeater, "powered")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(comparator, property(comparator, "powered")));
         BlockState door = Blocks.OAK_DOOR.defaultBlockState();
         assertTrue(BuilderProcess.isDerivedStateProperty(door, property(door, "powered")));
         assertFalse(BuilderProcess.isDerivedStateProperty(stairs, property(stairs, "facing")));
