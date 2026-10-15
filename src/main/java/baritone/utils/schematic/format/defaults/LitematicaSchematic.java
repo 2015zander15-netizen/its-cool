@@ -54,6 +54,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     private static final long MAX_SCHEMATIC_VOLUME = 8_388_608L;
     private static final long MAX_SCHEMATIC_COLUMN_ARRAYS = 262_144L;
 
+    private long unsupportedBlockEntityCount;
+    private long unsupportedEntityCount;
+
     /**
      * @param nbtTagCompound a decompressed file stream aka nbt data.
      * @param rotated        if the schematic is rotated by 90°.
@@ -367,11 +370,60 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     }
 
     /**
+     * Returns a warning when the schematic contains payloads that ordinary block placement does not restore.
+     * A null result means there are no block-entity or entity records in the decoded Litematica regions.
+     */
+    public String getUnsupportedPayloadWarning() {
+        if (unsupportedBlockEntityCount == 0 && unsupportedEntityCount == 0) {
+            return null;
+        }
+        StringBuilder warning = new StringBuilder("This Litematica contains ");
+        if (unsupportedBlockEntityCount > 0) {
+            warning.append(unsupportedBlockEntityCount)
+                    .append(" block-entity record(s), including possible container contents");
+        }
+        if (unsupportedBlockEntityCount > 0 && unsupportedEntityCount > 0) {
+            warning.append(" and ");
+        }
+        if (unsupportedEntityCount > 0) {
+            warning.append(unsupportedEntityCount).append(" entity record(s)");
+        }
+        warning.append(". Baritone's builder places block states only; it does not restore block-entity NBT/inventories or spawn schematic entities.");
+        return warning.toString();
+    }
+
+    static long countListRecords(CompoundTag compound, String key) {
+        Tag value = compound.get(key);
+        if (value == null) {
+            return 0L;
+        }
+        if (!(value instanceof ListTag)) {
+            throw new IllegalArgumentException("Litematica " + key + " payload must be an NBT list");
+        }
+        return ((ListTag) value).size();
+    }
+
+    /**
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
         CompoundTag[] regions = getRegions(nbt);
         validateSchematicBudget(regions);
+        unsupportedBlockEntityCount = 0L;
+        unsupportedEntityCount = 0L;
+        for (CompoundTag region : regions) {
+            // Litematica stores block-entity and entity payloads alongside each region's block palette.
+            // Baritone's schematic builder currently decodes block states only, so report these records
+            // rather than silently making the build appear fully restored.
+            unsupportedBlockEntityCount = Math.addExact(
+                    unsupportedBlockEntityCount,
+                    countListRecords(region, "TileEntities") + countListRecords(region, "BlockEntities")
+            );
+            unsupportedEntityCount = Math.addExact(
+                    unsupportedEntityCount,
+                    countListRecords(region, "Entities")
+            );
+        }
         Vec3i offsetMinCorner = new Vec3i(
                 getMinOfSchematic(regions, "x"),
                 getMinOfSchematic(regions, "y"),
