@@ -103,9 +103,28 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param blockStatePalette List of all different block types used in the schematic.
      * @return Array of BlockStates.
      */
+    static int validatePaletteSize(int paletteSize, long regionVolume) {
+        if (paletteSize <= 0) {
+            throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
+        }
+        if (regionVolume <= 0 || paletteSize > regionVolume) {
+            throw new IllegalArgumentException("Litematica palette has " + paletteSize
+                    + " entries but region volume is " + regionVolume);
+        }
+        if (paletteSize > MAX_REGION_VOLUME) {
+            throw new IllegalArgumentException("Litematica block-state palette is too large: "
+                    + paletteSize + " entries");
+        }
+        return paletteSize;
+    }
+
     static BlockState[] getBlockList(ListTag blockStatePalette) {
         if (blockStatePalette.isEmpty()) {
             throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
+        }
+        if (blockStatePalette.size() > MAX_REGION_VOLUME) {
+            throw new IllegalArgumentException("Litematica block-state palette is too large: "
+                    + blockStatePalette.size() + " entries");
         }
 
         BlockState[] blockList = new BlockState[blockStatePalette.size()];
@@ -335,11 +354,12 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                 getMinOfSchematic(regions, "z")
         );
         for (CompoundTag subReg : regions) {
+            long regionVolume = getVolume(subReg);
             ListTag usedBlockTypes = subReg.getListOrEmpty("BlockStatePalette");
+            validatePaletteSize(usedBlockTypes.size(), regionVolume);
             BlockState[] blockList = getBlockList(usedBlockTypes);
 
             int bitsPerBlock = getBitsPerBlock(usedBlockTypes.size());
-            long regionVolume = getVolume(subReg);
             long[] blockStateArray = subReg.getLongArray("BlockStates").orElse(new long[0]);
 
             LitematicaBitArray bitArray = new LitematicaBitArray(bitsPerBlock, regionVolume, blockStateArray);
