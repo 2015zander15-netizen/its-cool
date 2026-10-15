@@ -33,7 +33,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
 - Samples the support face facing toward the target (correctly reversing target-to-support direction) and requires the actual raycast to hit that exact support block and face before right-clicking.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
-- Handles toggle-only state mismatches for doors, trapdoors, fence gates, and levers with a verified right-click before considering a break; rejected interactions back off and are reported.
+- Handles stable toggle-only mismatches for doors, trapdoors, fence gates, levers, repeaters, and comparators through verified right-click interactions before considering a break; rejected interactions back off, are deferred while other work proceeds, and are reported when no other work remains. Temporary button pulses and externally powered states are not treated as user-settable targets.
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 
 ### Path executor diagnostics
