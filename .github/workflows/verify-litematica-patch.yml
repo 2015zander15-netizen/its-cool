@@ -19,6 +19,7 @@ on:
       - "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
       - "src/test/java/baritone/testutil/MinecraftTestBootstrap.java"
       - "src/test/java/baritone/behavior/InventoryBehaviorSlotSelectionTest.java"
+      - "ENGINE_AUDIT.md"
       - ".github/workflows/verify-litematica-patch.yml"
   workflow_dispatch:
 
