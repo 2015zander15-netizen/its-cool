@@ -445,6 +445,20 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void structuralLayerBoundsRespectStopHeightInBothOrders() {
+        // Bottom-up: only y=0..4 is built when stopAtHeight is 5, even if the layer ends at y=7.
+        assertEquals(0, BuilderProcess.structuralLayerMinYInclusive(10, 2, 4, false, 5));
+        assertEquals(4, BuilderProcess.structuralLayerMaxYInclusive(10, 2, 4, false, 5));
+        // Top-down: depth 4 includes y=6..9, never descending into lower unbuilt layers.
+        assertEquals(6, BuilderProcess.structuralLayerMinYInclusive(10, 1, 4, true, 4));
+        assertEquals(9, BuilderProcess.structuralLayerMaxYInclusive(10, 1, 4, true, 4));
+        // Clamp a large layer index to schematic height, and allow a zero stop boundary to build nothing.
+        assertEquals(10, BuilderProcess.completedLayerDepth(100, 4, 50, 10));
+        assertEquals(-1, BuilderProcess.structuralLayerMaxYInclusive(10, 1, 4, false, 0));
+        assertEquals(0, BuilderProcess.structuralLayerMinYInclusive(10, 1, 4, true, 0));
+    }
+
+    @Test
     public void finalManualInteractionPassCoversBuiltLayersButNotUnbuiltLayers() {
         assertEquals(0, BuilderProcess.manualPhaseMinYInclusive(10, 0, true, false, 5));
         assertEquals(4, BuilderProcess.manualPhaseMaxYInclusive(7, true, false, 5));
