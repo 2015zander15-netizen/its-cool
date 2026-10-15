@@ -134,6 +134,12 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsPaletteAboveSafeEntryLimit() {
+        LitematicaSchematic.validatePaletteSize(65_537, 65_537L);
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsEmptyPaletteSizeOrRegionVolume() {
         LitematicaSchematic.validatePaletteSize(0, 1L);
     }
