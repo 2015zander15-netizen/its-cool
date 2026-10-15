@@ -259,9 +259,9 @@ public class LitematicaSchematicSafetyTest {
         assertEquals(2, LitematicaSchematic.validatePaletteSize(2, 2L));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void rejectsPaletteLargerThanRegionVolume() {
-        LitematicaSchematic.validatePaletteSize(2, 1L);
+    @Test
+    public void acceptsUnusedPaletteEntriesBeyondRegionVolume() {
+        assertEquals(3, LitematicaSchematic.validatePaletteSize(3, 1L));
     }
 
     @Test(expected = IllegalArgumentException.class)
