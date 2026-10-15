@@ -167,6 +167,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return calcFailed ? previousCount + 1 : previousCount;
     }
 
+    static boolean shouldHoldWhileRetriesWait(boolean placementWaiting, boolean interactionWaiting,
+            boolean hasBlockingWork) {
+        return (placementWaiting || interactionWaiting) && !hasBlockingWork;
+    }
+
     static int placementRetryDelayTicks(int attemptNumber) {
         if (attemptNumber < 1) {
             throw new IllegalArgumentException("attemptNumber must be at least 1");
@@ -1208,6 +1213,21 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return new JankyGoalComposite(new GoalComposite(toPlace.toArray(new Goal[0])), new GoalComposite(toBreak.toArray(new Goal[0])));
         }
         if (toBreak.isEmpty()) {
+            boolean hasBlockingWork = !deferredForPlacementFailure.isEmpty()
+                    || !deferredForInteraction.isEmpty()
+                    || !deferredForSupport.isEmpty()
+                    || !missing.isEmpty()
+                    || !flowingLiquids.isEmpty();
+            if (logMissing && shouldHoldWhileRetriesWait(
+                    !waitingForPlacementRetry.isEmpty(),
+                    !waitingForInteractionRetry.isEmpty(),
+                    hasBlockingWork
+            )) {
+                // Keep the build process alive while a cooldown expires; do not report "Unable to do it"
+                // when the only remaining targets are waiting for their next safe retry.
+                resetPathFailureTracking();
+                return new GoalBlock(ctx.playerFeet());
+            }
             if (logMissing && !deferredForPlacementFailure.isEmpty()) {
                 String examples = deferredForPlacementFailure.stream()
                         .limit(5)
