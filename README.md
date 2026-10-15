@@ -36,6 +36,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Handles stable right-click-adjustable mismatches for doors, trapdoors, fence gates, levers, repeaters, comparators, note-block pitch, and daylight-sensor inversion before considering a break; rejected interactions back off, are deferred while other work proceeds, and are reported when no other work remains. Temporary button pulses and externally powered states are not treated as user-settable targets.
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 - Guards the inventory/throwaway selector against exceptions from modded block placement prediction, with a block-identity fallback.
+- Cycles material stacks through hotbar slots 1–7 with reversible swaps if every temporary slot is needed, while preserving slots 0 and 8 for the tool and throwaway.
 
 ### Path executor diagnostics
 `src/main/java/baritone/pathing/path/PathExecutor.java`
