@@ -187,6 +187,26 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && !isStructuralWorkMismatch(current, desired, ignoreDirection, ignoredProperties);
     }
 
+    static int manualPhaseMinYInclusive(int schematicHeight, int currentLayerMinY,
+            boolean layered, boolean topDown, int stopAtHeight) {
+        if (!layered || !topDown) {
+            return currentLayerMinY;
+        }
+        int builtDepth = Math.max(0, Math.min(stopAtHeight, schematicHeight));
+        return Math.max(currentLayerMinY, schematicHeight - builtDepth);
+    }
+
+    static int manualPhaseMaxYInclusive(int currentLayerMaxY,
+            boolean layered, boolean topDown, int stopAtHeight) {
+        if (!layered || topDown) {
+            return currentLayerMaxY;
+        }
+        if (stopAtHeight <= 0) {
+            return -1;
+        }
+        return Math.min(currentLayerMaxY, stopAtHeight - 1);
+    }
+
     static int placementRetryDelayTicks(int attemptNumber) {
         if (attemptNumber < 1) {
             throw new IllegalArgumentException("attemptNumber must be at least 1");
@@ -1001,8 +1021,16 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 }
                 // The final interaction pass covers every layer that was actually built, including
                 // earlier layers, but never extends past a user-selected stop height.
-                manualPhaseMinY = currentLayerMinYInclusive;
-                manualPhaseMaxY = currentLayerMaxYInclusive;
+                manualPhaseMinY = manualPhaseMinYInclusive(
+                        schematic.heightY(), currentLayerMinYInclusive,
+                        Baritone.settings().buildInLayers.value,
+                        Baritone.settings().layerOrder.value, stopAtHeight
+                );
+                manualPhaseMaxY = manualPhaseMaxYInclusive(
+                        currentLayerMaxYInclusive,
+                        Baritone.settings().buildInLayers.value,
+                        Baritone.settings().layerOrder.value, stopAtHeight
+                );
                 manualInteractionPhase = true;
                 for (BlockPos deferredPos : deferredManualInteractionPositions) {
                     observedCompleted.remove(BetterBlockPos.longHash(deferredPos));
