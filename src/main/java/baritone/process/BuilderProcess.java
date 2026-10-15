@@ -965,7 +965,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 logDebug("Unable to validate placement context for hotbar slot " + i + ": " + exception);
                 continue;
             }
-            if (valid(wouldBePlaced, desired, true)) {
+            if (isCompatiblePlacementPrediction(
+                    wouldBePlaced, desired,
+                    Baritone.settings().buildIgnoreDirection.value,
+                    Baritone.settings().buildIgnoreProperties.value)) {
                 return OptionalInt.of(i);
             }
         }
@@ -2004,6 +2007,19 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
      * This list is only an inventory heuristic: facing, half, axis, and neighbor-derived properties
      * can be chosen or updated at the eventual target. Exact state prediction happens in possibleToPlace.
      */
+    /**
+     * Placement state prediction runs before a block exists at the target, so properties that can be
+     * selected by a later right-click (repeater delay, note, lever power, and similar stable states)
+     * must not prevent placing the otherwise correct block. Structural/orientation mismatches still
+     * fail here and are corrected by replacing the block rather than accepting the wrong geometry.
+     */
+    static boolean isCompatiblePlacementPrediction(BlockState predicted, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties) {
+        return predicted != null && desired != null
+                && predicted.getBlock() == desired.getBlock()
+                && !isStructuralWorkMismatch(predicted, desired, ignoreDirection, ignoredProperties);
+    }
+
     static boolean itemCouldPotentiallyPlace(BlockState itemState, BlockState desired) {
         return itemState != null && desired != null && itemState.getBlock() == desired.getBlock();
     }
