@@ -933,7 +933,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 // and is unable since it's unsneaked in the intermediary tick
                 baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
             }
-            if (ctx.isLookingAt(pos) || ctx.playerRotations().isReallyCloseTo(rot)) {
+            // Never force a break based on approximate rotation alone: the actual ray must hit the selected block.
+            if (isAimedAtBlock(ctx.objectMouseOver(), pos)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_LEFT, true);
             }
             lastRequestedGoal = null;
