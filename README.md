@@ -35,6 +35,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Samples the support face facing toward the target and requires the actual raycast to hit that exact support block and face before right-clicking; AABB coordinate weights are tested for all six faces.
 - Requires the actual raycast to hit the selected block before mining; approximate rotation alone no longer forces a left-click.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
+- Runs a structural pass before the manual-interaction pass, so toggles cannot hide unfinished placement/removal/support work even when the schematic scan is capped. Pending toggle positions remain discoverable when chunks unload.
 - Interacts with stable manual state properties for doors, trapdoors, fence gates, levers, note pitches, daylight detector inversion, repeater delay, and comparator mode; buttons’ short-lived powered pulses are not treated as durable targets.
 - Defers pure open-state mismatches held by active redstone power rather than repeatedly clicking or breaking those blocks.
 - Ignores neighbor-derived chest type and connection properties for vines/connection blocks while preserving facing checks.
@@ -62,7 +63,7 @@ Each run clones the upstream branch, overlays the staged Litematica loader, buil
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
-Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. An earlier source revision built successfully, but later builder regression tests initially failed because Minecraft registries were not bootstrapped; the test fixture now initializes the version and registries before tests. Do not treat the newest interaction/cooldown revision as verified until its own run passes both tests and the Fabric remapped JAR build. CI covers schematic loader safety, interaction decision logic, and compile-time integration, not live block placement or redstone behavior.
+Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. The latest phase-separation and interaction revisions must each be judged from their own run; one earlier run failed because test registries were not bootstrapped, and the fixture now initializes Minecraft's version and registries first. Do not treat the newest interaction/cooldown revision as verified until its own run passes both tests and the Fabric remapped JAR build. CI covers schematic loader safety, interaction decision logic, and compile-time integration, not live block placement or redstone behavior.
 
 ## Known unfinished work
 
