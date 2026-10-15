@@ -239,6 +239,13 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(poweredOpenTrapdoor, closedTrapdoor, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(poweredOpenGate, closedGate, false, Collections.emptyList()));
+        BlockState wrongFacingPoweredDoor = current.setValue(DoorBlock.FACING, Direction.EAST);
+        assertFalse(BuilderProcess.isExternallyPoweredOpenableMismatch(
+                wrongFacingPoweredDoor, desired, false, Collections.emptyList()
+        ));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
+                wrongFacingPoweredDoor, desired, true, Collections.emptyList()
+        ));
         assertFalse(BuilderProcess.isDerivedStateProperty(current, property(current, "open")));
     }
 
