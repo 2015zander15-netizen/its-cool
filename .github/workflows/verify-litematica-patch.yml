@@ -1,8 +1,8 @@
 name: Verify Baritone engine fixes
 
-# Keep only the newest verification run for this branch active.
+# Isolate runs by ID so an orphaned/stalled runner cannot hold the branch lock forever.
 concurrency:
-  group: verify-engine-fixes-${{ github.ref }}
+  group: verify-engine-fixes-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: true
 
 on:
