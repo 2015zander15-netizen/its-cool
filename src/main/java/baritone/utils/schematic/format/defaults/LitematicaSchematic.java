@@ -45,6 +45,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
+    private static final int MAX_REGION_COUNT = 4_096;
     private static final long MAX_REGION_VOLUME = 8_388_608L;
     // BlockState[][][] allocates one leaf array per (x, z) column; cap their count too.
     private static final long MAX_REGION_COLUMN_ARRAYS = 262_144L;
@@ -63,9 +64,22 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     /**
      * @return Array of subregion tags.
      */
+    static int validateRegionCount(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("Litematica schematic contains no regions");
+        }
+        if (count > MAX_REGION_COUNT) {
+            throw new IllegalArgumentException("Litematica schematic has too many regions: "
+                    + count + " (maximum " + MAX_REGION_COUNT + ")");
+        }
+        return count;
+    }
+
     private static CompoundTag[] getRegions(CompoundTag nbt) {
-        return nbt.getCompoundOrEmpty("Regions").keySet().stream()
-                .map(nbt.getCompoundOrEmpty("Regions")::getCompoundOrEmpty)
+        CompoundTag regions = nbt.getCompoundOrEmpty("Regions");
+        validateRegionCount(regions.keySet().size());
+        return regions.keySet().stream()
+                .map(regions::getCompoundOrEmpty)
                 .toArray(CompoundTag[]::new);
     }
 
