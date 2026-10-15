@@ -455,7 +455,7 @@ public class BuilderProcessPlacementRetryTest {
         // Clamp a large layer index to schematic height, and allow a zero stop boundary to build nothing.
         assertEquals(10, BuilderProcess.completedLayerDepth(100, 4, 50, 10));
         assertEquals(-1, BuilderProcess.structuralLayerMaxYInclusive(10, 1, 4, false, 0));
-        assertEquals(0, BuilderProcess.structuralLayerMinYInclusive(10, 1, 4, true, 0));
+        assertEquals(10, BuilderProcess.structuralLayerMinYInclusive(10, 1, 4, true, 0));
     }
 
     @Test
