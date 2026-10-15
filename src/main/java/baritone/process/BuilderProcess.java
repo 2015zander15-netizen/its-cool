@@ -368,6 +368,27 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return state;
     }
 
+    private boolean canBeginManualInteractions(BuilderCalculationContext bcc) {
+        if (incorrectPositions == null || incorrectPositions.isEmpty()) {
+            return true;
+        }
+        for (BlockPos pos : incorrectPositions) {
+            BlockState current = bcc.bsi.get0(pos);
+            BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
+            if (desired == null || valid(current, desired, false)) {
+                continue;
+            }
+            if (needsManualInteraction(current, desired)
+                    || isExternallyPoweredOpenableMismatch(current, desired)) {
+                continue;
+            }
+            // Any ordinary placement, removal, missing material, or unsupported block
+            // keeps stable circuit/state interactions deferred.
+            return false;
+        }
+        return true;
+    }
+
     private Optional<Tuple<BetterBlockPos, Rotation>> toToggleNearPlayer(BuilderCalculationContext bcc) {
         BetterBlockPos center = ctx.playerFeet();
         for (int dx = -5; dx <= 5; dx++) {
@@ -954,7 +975,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             trim();
         }
 
-        Optional<Tuple<BetterBlockPos, Rotation>> toToggle = toToggleNearPlayer(bcc);
+        Optional<Tuple<BetterBlockPos, Rotation>> toToggle = canBeginManualInteractions(bcc)
+                ? toToggleNearPlayer(bcc)
+                : Optional.empty();
         if (toToggle.isPresent() && isSafeToCancel && ctx.player().onGround()) {
             Rotation rot = toToggle.get().getB();
             BetterBlockPos pos = toToggle.get().getA();
