@@ -128,6 +128,10 @@ public final class InventoryBehavior extends Behavior implements Helper {
 
     private boolean requestSwapWithHotBar(int inInventory, int inHotbar) {
         lastTickRequestedMove = new int[]{inInventory, inHotbar};
+        if (ctx.player().containerMenu != ctx.player().inventoryMenu) {
+            logDebug("Inventory swap requested while a non-inventory container is open; waiting until it closes");
+            return false;
+        }
         if (ticksSinceLastInventoryMove < Baritone.settings().ticksBetweenInventoryMoves.value) {
             logDebug("Inventory move requested but delaying " + ticksSinceLastInventoryMove + " " + Baritone.settings().ticksBetweenInventoryMoves.value);
             return false;
