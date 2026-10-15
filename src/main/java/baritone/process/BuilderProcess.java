@@ -1857,10 +1857,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
         @Override
         public boolean isInGoal(int x, int y, int z) {
-            if ((x == this.x && y == this.y && z == this.z)
+            boolean insideTargetColumn = x == this.x && z == this.z;
+            if ((insideTargetColumn && (y == this.y || y == this.y - 1))
                     || excludedFeetHashes.contains(BetterBlockPos.longHash(x, y, z))
                     || (!allowSameLevel && y == this.y - 1)
                     || y < this.y - 1) {
+                // The target cell, and the feet cell directly below it, overlap the player's body
+                // once we apply the same full-block AABB rule used by the immediate placement scan.
                 return false;
             }
             return super.isInGoal(x, y, z);
