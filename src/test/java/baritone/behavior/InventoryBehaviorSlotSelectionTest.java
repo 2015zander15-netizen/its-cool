@@ -17,6 +17,8 @@
 
 package baritone.behavior;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.Test;
@@ -36,10 +38,17 @@ public class InventoryBehaviorSlotSelectionTest {
         ItemStack exact = new ItemStack(Items.STONE, 32);
         ItemStack wrongCount = new ItemStack(Items.STONE, 31);
         ItemStack wrongItem = new ItemStack(Items.DIRT, 32);
+        ItemStack namedStone = new ItemStack(Items.STONE, 32);
+        namedStone.set(DataComponents.CUSTOM_NAME, Component.literal("not the same stack"));
+        ItemStack intactPickaxe = new ItemStack(Items.DIAMOND_PICKAXE);
+        ItemStack damagedPickaxe = intactPickaxe.copy();
+        damagedPickaxe.setDamageValue(1);
 
         assertTrue(InventoryBehavior.isExpectedStackInSlot(expected, exact));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, wrongCount));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, wrongItem));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, namedStone));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(intactPickaxe, damagedPickaxe));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, ItemStack.EMPTY));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(ItemStack.EMPTY, exact));
         assertFalse(InventoryBehavior.isExpectedStackInSlot(null, exact));
