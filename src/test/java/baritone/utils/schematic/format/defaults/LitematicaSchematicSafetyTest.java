@@ -156,6 +156,17 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsPropertiesFieldWithWrongNbtType() {
+        CompoundTag entry = new CompoundTag();
+        entry.putString("Name", "minecraft:stone");
+        entry.putString("Properties", "not_a_compound");
+        ListTag palette = new ListTag();
+        palette.add(entry);
+
+        LitematicaSchematic.getBlockList(palette);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsUnknownBlockStateProperty() {
         CompoundTag properties = new CompoundTag();
         properties.putString("not_a_real_property", "true");
