@@ -928,7 +928,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
                 @Override
                 public boolean inSchematic(int x, int y, int z, BlockState currentState) {
-                    return ISchematic.super.inSchematic(x, y, z, currentState) && y >= minYInclusive && y <= maxYInclusive && realSchematic.inSchematic(x, y, z, currentState);
+                    return ISchematic.super.inSchematic(x, y, z, currentState)
+                            && (manualInteractionPhase || (y >= minYInclusive && y <= maxYInclusive))
+                            && realSchematic.inSchematic(x, y, z, currentState);
                 }
 
                 @Override
@@ -957,19 +959,19 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         cleanupToggleAttempts(bcc);
         if (!recalc(bcc)) {
             if (!manualInteractionPhase) {
-                // Only start switching levers/openables after a complete structural pass has found
-                // no remaining blocks to place, replace, or support.
+                if (Baritone.settings().buildInLayers.value
+                        && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
+                    // Finish every structural layer before activating any stable circuit controls.
+                    logDirect("Starting layer " + layer);
+                    layer++;
+                    incorrectPositions = null;
+                    placementAttempts.clear();
+                    toggleAttempts.clear();
+                    return onTick(calcFailed, isSafeToCancel, recursions + 1);
+                }
+                // The final interaction pass intentionally scans the entire schematic, not just its last layer.
                 manualInteractionPhase = true;
                 incorrectPositions = null;
-                return onTick(calcFailed, isSafeToCancel, recursions + 1);
-            }
-            if (Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
-                logDirect("Starting layer " + layer);
-                layer++;
-                manualInteractionPhase = false;
-                incorrectPositions = null;
-                placementAttempts.clear();
-                toggleAttempts.clear();
                 return onTick(calcFailed, isSafeToCancel, recursions + 1);
             }
             Vec3i repeat = Baritone.settings().buildRepeat.value;
