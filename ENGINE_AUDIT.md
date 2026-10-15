@@ -12,6 +12,8 @@ This is an evidence-based audit and test plan, not a claim that every building b
 5. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
 6. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
+7. Toggle-only mismatches for doors, trapdoors, fence gates, and levers are routed through a verified right-click rather than breaking the existing block; repeated failures back off and are diagnosed.
+
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
 ### Cases that still require acceptance tests
@@ -21,6 +23,7 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Neighbor-derived states (dust, fences, walls, panes) after surrounding blocks update; confirm the derived-state comparison does not hide missing connections in the acceptance circuit.
 - Inventory refill and slot selection when required items are in the main inventory rather than the hotbar.
 - Server rejection and delayed block updates still need in-game acceptance testing to tune retry behavior and false positives.
+- Stateful interaction timing needs live testing, especially paired door halves and levers affected by external redstone.
 - Fluids, environmental requirements, and block-entity contents; these need separate support work.
 
 ## Feet: movement and reachability
@@ -42,4 +45,4 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 
 ## Verification boundary
 
-GitHub Actions overlays the staged main source and schematic safety regression tests onto the upstream 1.21.11 Fabric branch, then runs unit tests and builds the Fabric remapped JAR. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
+GitHub Actions overlays the staged loader, builder process, path executor, and regression-test files onto the upstream 1.21.11 Fabric branch, then runs unit tests and builds the Fabric remapped JAR. Use the newest run's summary to verify the exact source commit being downloaded. A passed test/build is necessary but not sufficient: CI cannot prove real-world placement correctness, movement quality, block-entity preservation, or calculator functionality. Complete the in-game acceptance sequence above before claiming those capabilities.
