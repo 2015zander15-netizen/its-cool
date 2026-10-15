@@ -1269,7 +1269,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         BlockState desired = schematic.desiredState(x, y, z, current, this.approxPlaceable);
                         BlockPos pos = new BetterBlockPos(blockX, blockY, blockZ);
                         long positionHash = BetterBlockPos.longHash(pos);
-                        BlockState current = bcc.bsi.get0(pos);
                         if (validForCurrentBuildPhase(current, desired)) {
                             if (!manualInteractionPhase && isDeferredManualStateMismatch(
                                     current, desired,
