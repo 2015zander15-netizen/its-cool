@@ -122,6 +122,19 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void redstoneOutputStateIsDerivedButRepeaterDelayIsManual() {
+        BlockState repeaterUnpowered = Blocks.REPEATER.defaultBlockState()
+                .setValue(RepeaterBlock.POWERED, false);
+        BlockState repeaterPowered = repeaterUnpowered.setValue(RepeaterBlock.POWERED, true);
+        BlockState delayOne = repeaterUnpowered.setValue(RepeaterBlock.DELAY, 1);
+        BlockState delayTwo = repeaterUnpowered.setValue(RepeaterBlock.DELAY, 2);
+
+        assertTrue(BuilderProcess.isDerivedStateProperty(repeaterUnpowered, property(repeaterUnpowered, "powered")));
+        assertTrue(BuilderProcess.sameBlockstate(repeaterUnpowered, repeaterPowered));
+        assertTrue(BuilderProcess.needsManualInteraction(delayOne, delayTwo, false, Collections.emptyList()));
+    }
+
+    @Test
     public void manualToggleDifferencesRemainVisibleToBuilder() {
         BlockState leverOff = Blocks.LEVER.defaultBlockState()
                 .setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
