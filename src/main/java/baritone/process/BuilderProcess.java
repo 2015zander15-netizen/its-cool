@@ -757,7 +757,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (wouldBePlaced == null) {
                 continue;
             }
-            if (!placementContext.canPlace()) {
+            try {
+                if (!placementContext.canPlace()) {
+                    continue;
+                }
+            } catch (RuntimeException exception) {
+                // Some modded placement contexts consult additional world/inventory state and may fail too.
+                logDebug("Unable to validate placement context for hotbar slot " + i + ": " + exception);
                 continue;
             }
             if (valid(wouldBePlaced, desired, true)) {
