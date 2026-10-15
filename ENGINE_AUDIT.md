@@ -41,6 +41,7 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 5. Unreachable support: builder gives a clear failure/pause rather than retrying an impossible placement indefinitely.
 6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
 7. Malformed Litematica data: reject zero or more than 4,096 regions, zero dimensions, over-budget regions/aggregate schematics or composite bounding-box scan volume, overflowing signed coordinates/extents, missing palettes, unknown block identifiers or properties, invalid property values or palette indices, and truncated packed data cleanly, including tiny regions separated by enormous coordinate gaps.
+8. Loader integration: decode a minimal one-block Litematica NBT structure and reject an invalid packed palette index through the actual constructor/decode path.
 8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
 ## Verification boundary
