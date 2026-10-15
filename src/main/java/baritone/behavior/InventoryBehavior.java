@@ -105,6 +105,14 @@ public final class InventoryBehavior extends Behavior implements Helper {
             }
         }
         if (candidates.isEmpty()) {
+            // Every temporary slot currently contains a block needed by this build.
+            // A SWAP is reversible: the displaced stack goes into the main inventory and
+            // Baritone can cycle it back onto the hotbar when that block is needed again.
+            for (int i = 1; i < 8; i++) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) {
             return OptionalInt.empty();
         }
         return OptionalInt.of(candidates.get(new Random().nextInt(candidates.size())));
