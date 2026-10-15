@@ -199,6 +199,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return (int) Math.min(Math.min(layerDepth, (long) stopAtHeight), (long) schematicHeight);
     }
 
+    static boolean hasMoreStructuralLayers(int layer, int layerHeight, int stopAtHeight, int schematicHeight) {
+        int targetDepth = Math.max(0, Math.min(stopAtHeight, schematicHeight));
+        return completedLayerDepth(layer, layerHeight, stopAtHeight, schematicHeight) < targetDepth;
+    }
+
     static int structuralLayerMinYInclusive(int schematicHeight, int layer, int layerHeight,
             boolean topDown, int stopAtHeight) {
         return topDown
@@ -1033,7 +1038,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (!recalc(bcc)) {
             if (!manualInteractionPhase) {
                 if (Baritone.settings().buildInLayers.value
-                        && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
+                        && hasMoreStructuralLayers(
+                                layer, Baritone.settings().layerHeight.value, stopAtHeight, schematic.heightY()
+                        )) {
                     // Finish every structural layer before activating any stable circuit controls.
                     logDirect("Starting layer " + layer);
                     layer++;
