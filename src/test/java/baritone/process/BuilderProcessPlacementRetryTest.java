@@ -187,6 +187,27 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void structuralGateDefersOrdinaryBlocksButAllowsStatefulInteractions() {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        BlockState stone = Blocks.STONE.defaultBlockState();
+        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
+        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
+        BlockState poweredOpenDoor = openDoor.setValue(DoorBlock.POWERED, true);
+        BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
+        BlockState unpoweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
+                .setValue(RedStoneWireBlock.POWER, 0);
+        BlockState poweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
+                .setValue(RedStoneWireBlock.POWER, 15);
+
+        assertTrue(BuilderProcess.isStructuralWorkMismatch(air, stone, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isStructuralWorkMismatch(closedDoor, openDoor, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isStructuralWorkMismatch(
+                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isStructuralWorkMismatch(
+                unpoweredWire, poweredWire, false, Collections.emptyList()));
+    }
+
+    @Test
     public void doorAndTrapdoorOpenStateDifferencesUseInteraction() {
         BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
         BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
