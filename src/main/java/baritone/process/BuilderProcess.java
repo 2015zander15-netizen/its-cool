@@ -368,6 +368,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return state;
     }
 
+    static boolean isStructuralWorkMismatch(BlockState current, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties) {
+        if (desired == null || sameBlockstate(current, desired, ignoreDirection, ignoredProperties)) {
+            return false;
+        }
+        return !needsManualInteraction(current, desired, ignoreDirection, ignoredProperties)
+                && !isExternallyPoweredOpenableMismatch(current, desired, ignoreDirection, ignoredProperties);
+    }
+
     private boolean canBeginManualInteractions(BuilderCalculationContext bcc) {
         if (incorrectPositions == null || incorrectPositions.isEmpty()) {
             return true;
@@ -375,16 +384,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         for (BlockPos pos : incorrectPositions) {
             BlockState current = bcc.bsi.get0(pos);
             BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
-            if (desired == null || valid(current, desired, false)) {
-                continue;
+            if (isStructuralWorkMismatch(
+                    current, desired,
+                    Baritone.settings().buildIgnoreDirection.value,
+                    Baritone.settings().buildIgnoreProperties.value)) {
+                // Any ordinary placement, removal, missing material, or unsupported block
+                // keeps stable circuit/state interactions deferred.
+                return false;
             }
-            if (needsManualInteraction(current, desired)
-                    || isExternallyPoweredOpenableMismatch(current, desired)) {
-                continue;
-            }
-            // Any ordinary placement, removal, missing material, or unsupported block
-            // keeps stable circuit/state interactions deferred.
-            return false;
         }
         return true;
     }
