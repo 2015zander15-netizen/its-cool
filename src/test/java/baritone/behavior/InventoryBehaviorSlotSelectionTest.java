@@ -17,6 +17,8 @@
 
 package baritone.behavior;
 
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,6 +29,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class InventoryBehaviorSlotSelectionTest {
+
+    @Test
+    public void hotbarSelectionRequiresTheExpectedStackToBePresent() {
+        ItemStack expected = new ItemStack(Items.STONE, 32);
+        ItemStack exact = new ItemStack(Items.STONE, 32);
+        ItemStack wrongCount = new ItemStack(Items.STONE, 31);
+        ItemStack wrongItem = new ItemStack(Items.DIRT, 32);
+
+        assertTrue(InventoryBehavior.isExpectedStackInSlot(expected, exact));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, wrongCount));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, wrongItem));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(expected, ItemStack.EMPTY));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(ItemStack.EMPTY, exact));
+        assertFalse(InventoryBehavior.isExpectedStackInSlot(null, exact));
+    }
 
     @Test
     public void swapRequestRequiresValidSlotsAndAStillOccupiedSource() {
