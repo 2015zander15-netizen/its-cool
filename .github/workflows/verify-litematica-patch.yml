@@ -16,6 +16,7 @@ on:
       - "src/main/java/baritone/pathing/path/PathExecutor.java"
       - "src/test/java/baritone/utils/schematic/format/defaults/LitematicaSchematicSafetyTest.java"
       - "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
+      - "src/test/java/baritone/behavior/InventoryBehaviorSlotSelectionTest.java"
       - ".github/workflows/verify-litematica-patch.yml"
   workflow_dispatch:
 
@@ -52,6 +53,7 @@ jobs:
           test_sources=(
             "src/test/java/baritone/utils/schematic/format/defaults/LitematicaSchematicSafetyTest.java"
             "src/test/java/baritone/process/BuilderProcessPlacementRetryTest.java"
+            "src/test/java/baritone/behavior/InventoryBehaviorSlotSelectionTest.java"
           )
           for test_source in "${test_sources[@]}"; do
             test_target="upstream/$test_source"
