@@ -138,6 +138,33 @@ public class LitematicaSchematicSafetyTest {
         assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
     }
 
+    @Test
+    public void decodesTwoBlockRegionInXOrder() {
+        LitematicaSchematic schematic = new LitematicaSchematic(twoBlockSchematic());
+
+        assertEquals(2, schematic.widthX());
+        assertEquals(1, schematic.heightY());
+        assertEquals(1, schematic.lengthZ());
+        assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+        assertEquals(Blocks.DIRT.defaultBlockState(), schematic.getDirect(1, 0, 0));
+    }
+
+    @Test
+    public void decodesPackedEntriesThatCrossLongWordBoundary() {
+        int bitsPerEntry = 5;
+        int[] values = new int[20];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = (i * 7 + 3) & 31;
+        }
+        long[] packed = packEntries(bitsPerEntry, values);
+        LitematicaSchematic.LitematicaBitArray bitArray =
+                new LitematicaSchematic.LitematicaBitArray(bitsPerEntry, values.length, packed);
+
+        for (int i = 0; i < values.length; i++) {
+            assertEquals("packed entry " + i, values[i], bitArray.getAt(i));
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsInvalidPackedPaletteIndexDuringDecode() {
         new LitematicaSchematic(singleBlockSchematic(3L));
@@ -266,6 +293,45 @@ public class LitematicaSchematicSafetyTest {
     @Test(expected = IllegalArgumentException.class)
     public void rejectsOverflowingSchematicOffset() {
         LitematicaSchematic.getCheckedOffset(Integer.MAX_VALUE, Integer.MIN_VALUE, "x");
+    }
+
+    private static long[] packEntries(int bitsPerEntry, int[] values) {
+        long bitCount = (long) bitsPerEntry * values.length;
+        long[] words = new long[(int) ((bitCount + 63L) / 64L)];
+        for (int i = 0; i < values.length; i++) {
+            long bitOffset = (long) i * bitsPerEntry;
+            int wordIndex = (int) (bitOffset >>> 6);
+            int startBit = (int) (bitOffset & 63L);
+            long value = values[i] & ((1L << bitsPerEntry) - 1L);
+            words[wordIndex] |= value << startBit;
+            int bitsInFirstWord = Long.SIZE - startBit;
+            if (bitsInFirstWord < bitsPerEntry) {
+                words[wordIndex + 1] |= value >>> bitsInFirstWord;
+            }
+        }
+        return words;
+    }
+
+    private static CompoundTag twoBlockSchematic() {
+        CompoundTag subregion = region(2, 1, 1);
+        ListTag palette = new ListTag();
+        CompoundTag stone = new CompoundTag();
+        stone.putString("Name", "minecraft:stone");
+        stone.put("Properties", new CompoundTag());
+        palette.add(stone);
+        CompoundTag dirt = new CompoundTag();
+        dirt.putString("Name", "minecraft:dirt");
+        dirt.put("Properties", new CompoundTag());
+        palette.add(dirt);
+
+        subregion.put("BlockStatePalette", palette);
+        // Minimum palette width is 2 bits; [stone, dirt] is encoded as 0b0100.
+        subregion.putLongArray("BlockStates", new long[]{1L << 2});
+        CompoundTag regions = new CompoundTag();
+        regions.put("two_blocks", subregion);
+        CompoundTag schematic = new CompoundTag();
+        schematic.put("Regions", regions);
+        return schematic;
     }
 
     private static CompoundTag singleBlockSchematic(long packedBlockStateWord) {
