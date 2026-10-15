@@ -194,6 +194,7 @@ public class BuilderProcessPlacementRetryTest {
         BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
         BlockState poweredOpenDoor = openDoor.setValue(DoorBlock.POWERED, true);
         BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
+        BlockState wrongFacingDoor = closedDoor.setValue(DoorBlock.FACING, Direction.EAST);
         BlockState unpoweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
                 .setValue(RedStoneWireBlock.POWER, 0);
         BlockState poweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
@@ -201,6 +202,8 @@ public class BuilderProcessPlacementRetryTest {
 
         assertTrue(BuilderProcess.isStructuralWorkMismatch(air, stone, false, Collections.emptyList()));
         assertFalse(BuilderProcess.isStructuralWorkMismatch(closedDoor, openDoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isStructuralWorkMismatch(wrongFacingDoor, closedDoor, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isStructuralWorkMismatch(wrongFacingDoor, closedDoor, true, Collections.emptyList()));
         assertFalse(BuilderProcess.isStructuralWorkMismatch(
                 poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList()));
         assertFalse(BuilderProcess.isStructuralWorkMismatch(
