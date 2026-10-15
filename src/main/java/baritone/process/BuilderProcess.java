@@ -627,6 +627,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         attempt.retryAtTick = builderTick + placementRetryDelayTicks(attempt.attempts);
     }
 
+    private boolean isToggleAttemptWaiting(BlockPos pos, BlockState current, BlockState desired) {
+        ToggleAttempt attempt = toggleAttempts.get(pos);
+        return attempt != null && attempt.attempts < MAX_PLACEMENT_ATTEMPTS
+                && builderTick < attempt.retryAtTick
+                && attempt.originalState.equals(current)
+                && sameBlockstate(attempt.desiredState, desired);
+    }
+
     private boolean isToggleAttemptExhausted(BlockPos pos, BlockState current, BlockState desired) {
         ToggleAttempt attempt = toggleAttempts.get(pos);
         return attempt != null && attempt.attempts >= MAX_PLACEMENT_ATTEMPTS
@@ -1089,6 +1097,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<BetterBlockPos> interactable = new ArrayList<>();
         List<BetterBlockPos> deferredForSupport = new ArrayList<>();
         List<BetterBlockPos> deferredForPlacementFailure = new ArrayList<>();
+        List<BetterBlockPos> waitingForInteractionRetry = new ArrayList<>();
         List<BetterBlockPos> deferredForInteraction = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
         List<BetterBlockPos> sourceLiquids = new ArrayList<>();
@@ -1115,6 +1124,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 if (needsManualInteraction(state, desired)) {
                     if (isToggleAttemptExhausted(pos, state, desired)) {
                         deferredForInteraction.add(pos);
+                    } else if (isToggleAttemptWaiting(pos, state, desired)) {
+                        waitingForInteractionRetry.add(pos);
                     } else {
                         interactable.add(pos);
                     }
@@ -1201,6 +1212,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 logDirect(flowingLiquids.stream()
                         .map(p -> String.format("%s %s %s", p.x, p.y, p.z))
                         .collect(Collectors.joining("\n")));
+            }
+            if (!waitingForInteractionRetry.isEmpty()) {
+                return new GoalComposite(waitingForInteractionRetry.stream()
+                        .map(GoalGetToBlock::new)
+                        .toArray(Goal[]::new));
             }
             return null;
         }
