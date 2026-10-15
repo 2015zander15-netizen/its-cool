@@ -1586,6 +1586,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ("instrument".equals(propertyName) || "powered".equals(propertyName))) {
             return true; // instrument follows the block below; powered follows a redstone signal
         }
+        if ("open".equals(propertyName)
+                && (state.getBlock() instanceof DoorBlock
+                || state.getBlock() instanceof TrapDoorBlock
+                || state.getBlock() instanceof FenceGateBlock)) {
+            Property<?> poweredProperty = state.getBlock().getStateDefinition().getProperty("powered");
+            if (poweredProperty != null && Boolean.TRUE.equals(state.getValues().get(poweredProperty))) {
+                return true; // Redstone controls open/closed state while this block is powered.
+            }
+        }
         if (DYNAMIC_STATE_PROPERTIES.contains(propertyName) && isRedstoneStateBlock(normalizedClass)) {
             return true;
         }
