@@ -1819,21 +1819,27 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return new GoalPlace(pos);
         }
 
-        List<Goal> approachGoals = new ArrayList<>();
+        Set<BlockPos> excludedFeetPositions = failedPlacementApproaches(pos, current, desired);
         for (Direction towardSupport : placementSupportDirections()) {
             BlockPos supportPos = pos.relative(towardSupport);
             //noinspection ConstantConditions
             if (MovementHelper.canPlaceAgainst(ctx, supportPos)) {
-                approachGoals.add(new GoalAdjacent(pos, supportPos, allowSameLevel));
+                // Avoid aiming for a position occupied by the support block; some partial
+                // collision shapes may otherwise be accepted as a feet-level goal.
+                excludedFeetPositions.add(new BlockPos(supportPos));
             }
         }
-        if (approachGoals.isEmpty()) {
+        boolean hasPotentialSupport = false;
+        for (Direction towardSupport : placementSupportDirections()) {
+            if (MovementHelper.canPlaceAgainst(ctx, pos.relative(towardSupport))) {
+                hasPotentialSupport = true;
+                break;
+            }
+        }
+        if (!hasPotentialSupport) {
             return new GoalPlace(pos);
         }
-        if (approachGoals.size() == 1) {
-            return approachGoals.get(0);
-        }
-        return new GoalComposite(approachGoals.toArray(new Goal[0]));
+        return new GoalPlacementApproach(pos, excludedFeetPositions, allowSameLevel);
     }
 
     private Goal breakGoal(BlockPos pos, BuilderCalculationContext bcc) {
@@ -1849,6 +1855,57 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             });
         }
         return new GoalBreak(pos);
+    }
+
+    /**
+     * A get-near-target goal that excludes feet positions already tried without finding a usable
+     * placement face. The excluded list changes the goal identity so Baritone recalculates the path.
+     */
+    public static class GoalPlacementApproach extends GoalGetToBlock {
+        private final Set<BlockPos> excludedFeetPositions;
+        private final boolean allowSameLevel;
+
+        public GoalPlacementApproach(BlockPos target, Set<BlockPos> excludedFeetPositions,
+                boolean allowSameLevel) {
+            super(target);
+            this.excludedFeetPositions = excludedFeetPositions.stream()
+                    .map(BlockPos::new)
+                    .collect(Collectors.toCollection(HashSet::new));
+            this.allowSameLevel = allowSameLevel;
+        }
+
+        @Override
+        public boolean isInGoal(int x, int y, int z) {
+            if ((x == this.x && y == this.y && z == this.z)
+                    || excludedFeetPositions.contains(new BlockPos(x, y, z))
+                    || (!allowSameLevel && y == this.y - 1)
+                    || y < this.y - 1) {
+                return false;
+            }
+            return super.isInGoal(x, y, z);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!super.equals(other) || !(other instanceof GoalPlacementApproach)) {
+                return false;
+            }
+            GoalPlacementApproach goal = (GoalPlacementApproach) other;
+            return allowSameLevel == goal.allowSameLevel
+                    && excludedFeetPositions.equals(goal.excludedFeetPositions);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * super.hashCode() + Boolean.hashCode(allowSameLevel))
+                    + excludedFeetPositions.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "GoalPlacementApproach{" + x + "," + y + "," + z
+                    + ", excluded=" + excludedFeetPositions.size() + "}";
+        }
     }
 
     public static class GoalAdjacent extends GoalGetToBlock {
