@@ -187,6 +187,28 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && !isStructuralWorkMismatch(current, desired, ignoreDirection, ignoredProperties);
     }
 
+    static int completedLayerDepth(int layer, int layerHeight, int stopAtHeight, int schematicHeight) {
+        if (layer <= 0 || layerHeight <= 0 || stopAtHeight <= 0 || schematicHeight <= 0) {
+            return 0;
+        }
+        long layerDepth = (long) layer * layerHeight;
+        return (int) Math.min(Math.min(layerDepth, (long) stopAtHeight), (long) schematicHeight);
+    }
+
+    static int structuralLayerMinYInclusive(int schematicHeight, int layer, int layerHeight,
+            boolean topDown, int stopAtHeight) {
+        return topDown
+                ? schematicHeight - completedLayerDepth(layer, layerHeight, stopAtHeight, schematicHeight)
+                : 0;
+    }
+
+    static int structuralLayerMaxYInclusive(int schematicHeight, int layer, int layerHeight,
+            boolean topDown, int stopAtHeight) {
+        return topDown
+                ? schematicHeight - 1
+                : completedLayerDepth(layer, layerHeight, stopAtHeight, schematicHeight) - 1;
+    }
+
     static int manualPhaseMinYInclusive(int schematicHeight, int currentLayerMinY,
             boolean layered, boolean topDown, int stopAtHeight) {
         if (!layered || !topDown) {
@@ -954,17 +976,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 realSchematic = schematic;
             }
             ISchematic realSchematic = this.realSchematic; // wrap this properly, dont just have the inner class refer to the builderprocess.this
-            int minYInclusive;
-            int maxYInclusive;
-            // layer = 0 should be nothing
-            // layer = realSchematic.heightY() should be everything
-            if (Baritone.settings().layerOrder.value) { // top to bottom
-                maxYInclusive = realSchematic.heightY() - 1;
-                minYInclusive = realSchematic.heightY() - layer * Baritone.settings().layerHeight.value;
-            } else {
-                maxYInclusive = layer * Baritone.settings().layerHeight.value - 1;
-                minYInclusive = 0;
-            }
+            int minYInclusive = structuralLayerMinYInclusive(
+                    realSchematic.heightY(), layer, Baritone.settings().layerHeight.value,
+                    Baritone.settings().layerOrder.value, stopAtHeight
+            );
+            int maxYInclusive = structuralLayerMaxYInclusive(
+                    realSchematic.heightY(), layer, Baritone.settings().layerHeight.value,
+                    Baritone.settings().layerOrder.value, stopAtHeight
+            );
             currentLayerMinYInclusive = minYInclusive;
             currentLayerMaxYInclusive = maxYInclusive;
             schematic = new ISchematic() {
