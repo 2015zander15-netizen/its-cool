@@ -234,15 +234,16 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                     + volume + " blocks (maximum " + MAX_REGION_VOLUME + ")");
         }
 
-        final long columnArrays;
+        final long nestedArrayCount;
         try {
-            columnArrays = Math.multiplyExact(x, z);
+            // new BlockState[x][z][y] allocates x intermediate arrays plus x*z leaf arrays.
+            nestedArrayCount = Math.addExact(x, Math.multiplyExact(x, z));
         } catch (ArithmeticException e) {
-            throw new IllegalArgumentException("Litematica column array count overflows a 64-bit integer", e);
+            throw new IllegalArgumentException("Litematica nested array count overflows a 64-bit integer", e);
         }
-        if (columnArrays > MAX_REGION_COLUMN_ARRAYS) {
-            throw new IllegalArgumentException("Litematica subregion would allocate too many column arrays: "
-                    + columnArrays + " (maximum " + MAX_REGION_COLUMN_ARRAYS + ")");
+        if (nestedArrayCount > MAX_REGION_COLUMN_ARRAYS) {
+            throw new IllegalArgumentException("Litematica subregion would allocate too many nested arrays: "
+                    + nestedArrayCount + " (maximum " + MAX_REGION_COLUMN_ARRAYS + ")");
         }
         return volume;
     }
@@ -304,7 +305,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             validateExtent(offsetZ, (int) z, "z");
             try {
                 totalVolume = Math.addExact(totalVolume, volume);
-                totalColumnArrays = Math.addExact(totalColumnArrays, Math.multiplyExact(x, z));
+                // Include both x intermediate arrays and x*z leaf arrays for the 3D reference array.
+                long regionArrayCount = Math.addExact(x, Math.multiplyExact(x, z));
+                totalColumnArrays = Math.addExact(totalColumnArrays, regionArrayCount);
                 boundsX = Math.max(boundsX, Math.addExact((long) offsetX, x));
                 boundsY = Math.max(boundsY, Math.addExact((long) offsetY, y));
                 boundsZ = Math.max(boundsZ, Math.addExact((long) offsetZ, z));
