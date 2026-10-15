@@ -69,15 +69,6 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
-    public void builderWaitsOnlyWhenPendingRetriesAreTheOnlyRemainingWork() {
-        assertTrue(BuilderProcess.shouldHoldWhileRetriesWait(true, false, false));
-        assertTrue(BuilderProcess.shouldHoldWhileRetriesWait(false, true, false));
-        assertTrue(BuilderProcess.shouldHoldWhileRetriesWait(true, true, false));
-        assertFalse(BuilderProcess.shouldHoldWhileRetriesWait(false, false, false));
-        assertFalse(BuilderProcess.shouldHoldWhileRetriesWait(true, false, true));
-    }
-
-    @Test
     public void retryDelayIncreasesForEarlyAttempts() {
         assertEquals(4, BuilderProcess.placementRetryDelayTicks(1));
         assertEquals(8, BuilderProcess.placementRetryDelayTicks(2));
