@@ -1942,6 +1942,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || normalizedClass.contains("crafter");
     }
 
+    static boolean isOpenableOpenProperty(BlockState state, Property<?> property) {
+        return state != null
+                && "open".equals(property.getName())
+                && (state.getBlock() instanceof DoorBlock
+                || state.getBlock() instanceof TrapDoorBlock
+                || state.getBlock() instanceof FenceGateBlock);
+    }
+
     static boolean sameBlockstate(BlockState first, BlockState second) {
         return sameBlockstate(
                 first, second,
@@ -1972,7 +1980,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         for (Property<?> prop : map1.keySet()) {
             if (!Objects.equals(map1.get(prop), map2.get(prop))
                     && !isDerivedStateProperty(first, prop)
-                    && !(ignoreDirection && ORIENTATION_PROPS.contains(prop) && !isManualInteractionProperty(first, prop))
+                    && !(ignoreDirection && ORIENTATION_PROPS.contains(prop)
+                    && !isManualInteractionProperty(first, prop)
+                    && !isOpenableOpenProperty(first, prop))
                     && !ignoredProps.contains(prop.getName())) {
                 return false;
             }
