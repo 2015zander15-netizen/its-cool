@@ -94,6 +94,7 @@ import static baritone.api.pathing.movement.ActionCosts.COST_INF;
 public final class BuilderProcess extends BaritoneProcessHelper implements IBuilderProcess {
 
     private static final int MAX_PLACEMENT_ATTEMPTS = 5;
+    private static final int MAX_PLACEMENT_APPROACH_FAILURES = 4_096;
     private static final int INITIAL_PLACEMENT_RETRY_TICKS = 4;
     private static final int MAX_PLACEMENT_RETRY_TICKS = 32;
 
@@ -134,6 +135,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private BlockPos lastFailureObservedPlayerPos;
     private int lastFailureIncorrectPositionsSize;
     private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
+    private final Map<BlockPos, PlacementApproachFailure> placementApproachFailures = new HashMap<>();
     private final Map<BlockPos, ToggleAttempt> toggleAttempts = new HashMap<>();
     public int stopAtHeight = 0;
 
@@ -151,6 +153,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             this.desiredState = desiredState;
             this.supportPos = new BlockPos(supportPos);
             this.originalSupportState = originalSupportState;
+        }
+    }
+
+    private static final class PlacementApproachFailure {
+        private final BlockState targetState;
+        private final BlockState desiredState;
+        private final Map<BlockPos, BlockState> surroundingStates;
+        private final Set<BlockPos> failedFeetPositions = new HashSet<>();
+
+        private PlacementApproachFailure(BlockState targetState, BlockState desiredState,
+                Map<BlockPos, BlockState> surroundingStates) {
+            this.targetState = targetState;
+            this.desiredState = desiredState;
+            this.surroundingStates = new HashMap<>(surroundingStates);
         }
     }
 
