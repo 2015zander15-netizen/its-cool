@@ -75,6 +75,37 @@ jobs:
         working-directory: upstream
         run: bash ./gradlew test --no-daemon
 
+      - name: Print test failure details
+        if: always()
+        shell: bash
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          reports = list(Path("build/test-results/test").glob("TEST-*.xml"))
+          found = False
+          for report in reports:
+              root = ET.parse(report).getroot()
+              for case in root.iter("testcase"):
+                  for failure in list(case.findall("failure")) + list(case.findall("error")):
+                      found = True
+                      print(f"FAILURE {case.get('classname')}.{case.get('name')}: {failure.get('message')}")
+                      detail = (failure.text or "").strip()
+                      print(detail[:12000])
+          if not found:
+              print("No JUnit XML failures were found.")
+          PY
+
+      - name: Upload JUnit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baritone-junit-test-reports
+          path: upstream/build/test-results/test/*.xml
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Build Fabric remapped JAR
         id: build
         continue-on-error: true
