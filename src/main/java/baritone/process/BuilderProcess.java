@@ -592,8 +592,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 
+    static boolean targetIntersectsPlayerBounds(BlockPos target, AABB playerBounds) {
+        AABB targetBounds = new AABB(
+                target.getX(), target.getY(), target.getZ(),
+                target.getX() + 1.0, target.getY() + 1.0, target.getZ() + 1.0
+        );
+        return targetBounds.intersects(playerBounds);
+    }
+
     private Optional<Placement> searchForPlacables(BuilderCalculationContext bcc, List<BlockState> desirableOnHotbar) {
         BetterBlockPos center = ctx.playerFeet();
+        AABB playerBounds = ctx.player().getBoundingBox();
         for (int dx = -5; dx <= 5; dx++) {
             for (int dy = -5; dy <= 1; dy++) {
                 for (int dz = -5; dz <= 5; dz++) {
@@ -610,7 +619,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         if (isPlacementAttemptExhausted(target, curr, desired)) {
                             continue;
                         }
-                        if (dy == 1 && bcc.bsi.get0(x, y + 1, z).getBlock() instanceof AirBlock) {
+                        // Skip only blocks whose actual unit bounds overlap the player; the old
+                        // height-only check also skipped horizontally adjacent head-height wall blocks.
+                        if (targetIntersectsPlayerBounds(target, playerBounds)) {
                             continue;
                         }
                         if (isPlacementAttemptWaiting(target, curr, desired)) {
