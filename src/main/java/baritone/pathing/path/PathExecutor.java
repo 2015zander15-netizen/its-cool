@@ -180,7 +180,7 @@ public class PathExecutor implements IPathExecutor, Helper {
         }
         /*long end = System.nanoTime() / 1000000L;
         if (end - start > 0) {
-            System.out.println("Recalculating break and place took " + (end - start) + "ms");
+            logDebug("Recalculating break and place took " + (end - start) + "ms");
         }*/
         if (pathPosition < path.movements().size() - 1) {
             IMovement next = path.movements().get(pathPosition + 1);
