@@ -1841,22 +1841,24 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
      * placement face. The excluded list changes the goal identity so Baritone recalculates the path.
      */
     public static class GoalPlacementApproach extends GoalGetToBlock {
-        private final Set<BlockPos> excludedFeetPositions;
+        private final LongOpenHashSet excludedFeetHashes = new LongOpenHashSet();
         private final boolean allowSameLevel;
 
         public GoalPlacementApproach(BlockPos target, Set<BlockPos> excludedFeetPositions,
                 boolean allowSameLevel) {
             super(target);
-            this.excludedFeetPositions = excludedFeetPositions.stream()
-                    .map(BlockPos::new)
-                    .collect(Collectors.toCollection(HashSet::new));
+            for (BlockPos feetPos : excludedFeetPositions) {
+                this.excludedFeetHashes.add(BetterBlockPos.longHash(
+                        feetPos.getX(), feetPos.getY(), feetPos.getZ()
+                ));
+            }
             this.allowSameLevel = allowSameLevel;
         }
 
         @Override
         public boolean isInGoal(int x, int y, int z) {
             if ((x == this.x && y == this.y && z == this.z)
-                    || excludedFeetPositions.contains(new BlockPos(x, y, z))
+                    || excludedFeetHashes.contains(BetterBlockPos.longHash(x, y, z))
                     || (!allowSameLevel && y == this.y - 1)
                     || y < this.y - 1) {
                 return false;
@@ -1871,19 +1873,19 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             }
             GoalPlacementApproach goal = (GoalPlacementApproach) other;
             return allowSameLevel == goal.allowSameLevel
-                    && excludedFeetPositions.equals(goal.excludedFeetPositions);
+                    && excludedFeetHashes.equals(goal.excludedFeetHashes);
         }
 
         @Override
         public int hashCode() {
             return 31 * (31 * super.hashCode() + Boolean.hashCode(allowSameLevel))
-                    + excludedFeetPositions.hashCode();
+                    + excludedFeetHashes.hashCode();
         }
 
         @Override
         public String toString() {
             return "GoalPlacementApproach{" + x + "," + y + "," + z
-                    + ", excluded=" + excludedFeetPositions.size() + "}";
+                    + ", excluded=" + excludedFeetHashes.size() + "}";
         }
     }
 
