@@ -66,24 +66,22 @@ public final class InventoryBehavior extends Behavior implements Helper {
         }
         ticksSinceLastInventoryMove++;
 
-        // A deferred swap has priority. Otherwise an automatic tool/throwaway request could overwrite
-        // the queued source/destination while the cooldown or stationary guard is still blocking it.
+        int[] nextMove;
         if (lastTickRequestedMove != null) {
-            int[] pendingMove = lastTickRequestedMove;
-            logDebug("Retrying queued inventory move " + pendingMove[0] + " -> " + pendingMove[1]);
-            requestSwapWithHotBar(pendingMove[0], pendingMove[1]);
-            return;
+            nextMove = chooseNextInventoryMove(lastTickRequestedMove, -1, -1);
+        } else {
+            nextMove = chooseNextInventoryMove(
+                    null,
+                    firstValidThrowaway(),
+                    bestToolAgainst(Blocks.STONE, ItemTags.PICKAXES)
+            );
         }
-
-        int throwaway = firstValidThrowaway();
-        if (throwaway >= 9) { // no throwaway on hotbar, but one is present in main inventory
-            requestSwapWithHotBar(throwaway, 8);
-            return;
-        }
-
-        int pick = bestToolAgainst(Blocks.STONE, ItemTags.PICKAXES);
-        if (pick >= 9) {
-            requestSwapWithHotBar(pick, 0);
+        if (nextMove != null) {
+            // A deferred swap has priority. Otherwise an automatic tool/throwaway request could overwrite
+            // the queued source/destination while the cooldown or stationary guard is still blocking it.
+            logDebug("Processing inventory move " + nextMove[0] + " -> " + nextMove[1]);
+            requestSwapWithHotBar(nextMove[0], nextMove[1]);
+            return; // one move per tick; preserve any queued request until it succeeds or is invalidated
         }
     }
 
@@ -133,6 +131,19 @@ public final class InventoryBehavior extends Behavior implements Helper {
             }
         }
         return candidates;
+    }
+
+    static int[] chooseNextInventoryMove(int[] pendingMove, int throwawaySlot, int pickSlot) {
+        if (pendingMove != null && pendingMove.length >= 2) {
+            return new int[]{pendingMove[0], pendingMove[1]};
+        }
+        if (throwawaySlot >= 9) {
+            return new int[]{throwawaySlot, 8};
+        }
+        if (pickSlot >= 9) {
+            return new int[]{pickSlot, 0};
+        }
+        return null;
     }
 
     static boolean isValidSwapRequest(int sourceSlot, int hotbarSlot, int inventorySize, boolean sourceOccupied) {
