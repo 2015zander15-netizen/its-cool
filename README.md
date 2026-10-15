@@ -19,7 +19,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Rejects empty schematics and more than 4,096 regions, zero-sized regions, and any decoded region above 8,388,608 blocks before allocating the 3D state array.
 - Reuses validated dimensions before region-array allocation.
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
-- Caps aggregate region volume, nested column-array counts, and composite bounding-box scan volume across all regions before allocating arrays.
+- Caps aggregate region volume, all nested 3D-array objects (intermediate plus column arrays), and composite bounding-box scan volume across all regions before allocating arrays.
 - Rejects empty/unknown block palettes, palettes above 65,536 entries, non-compound palette entries or `Properties` values, unknown block-state property names, invalid property values, invalid palette indices, and truncated packed `BlockStates` arrays.
 - Regression tests exercise a complete one-block Litematica NBT decode and verify an invalid packed palette index is rejected during decoding.
 
