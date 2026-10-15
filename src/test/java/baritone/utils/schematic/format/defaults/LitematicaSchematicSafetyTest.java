@@ -19,6 +19,7 @@ package baritone.utils.schematic.format.defaults;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.Blocks;
@@ -140,6 +141,13 @@ public class LitematicaSchematicSafetyTest {
     @Test(expected = IllegalArgumentException.class)
     public void rejectsPaletteWithoutPositiveRegionVolume() {
         LitematicaSchematic.validatePaletteSize(1, 0L);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsPaletteEntryWithWrongTagType() {
+        ListTag palette = new ListTag();
+        palette.add(IntTag.valueOf(3));
+        LitematicaSchematic.getBlockList(palette);
     }
 
     @Test(expected = IllegalArgumentException.class)
