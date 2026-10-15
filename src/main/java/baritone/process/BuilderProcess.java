@@ -204,6 +204,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return completedLayerDepth(layer, layerHeight, stopAtHeight, schematicHeight) < targetDepth;
     }
 
+    static boolean shouldSkipFailedStructuralLayer(boolean manualInteractionPhase,
+            boolean skipFailedLayers, boolean buildInLayers,
+            int layer, int layerHeight, int stopAtHeight, int schematicHeight) {
+        return !manualInteractionPhase
+                && skipFailedLayers
+                && buildInLayers
+                && hasMoreStructuralLayers(layer, layerHeight, stopAtHeight, schematicHeight);
+    }
+
     static int structuralLayerMinYInclusive(int schematicHeight, int layer, int layerHeight,
             boolean topDown, int stopAtHeight) {
         return topDown
@@ -1214,7 +1223,15 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (goal == null) {
             goal = assemble(bcc, approxPlaceable, true); // we're far away, so assume that we have our whole inventory to recalculate placeable properly
             if (goal == null) {
-                if (Baritone.settings().skipFailedLayers.value && Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < realSchematic.heightY()) {
+                if (shouldSkipFailedStructuralLayer(
+                        manualInteractionPhase,
+                        Baritone.settings().skipFailedLayers.value,
+                        Baritone.settings().buildInLayers.value,
+                        layer,
+                        Baritone.settings().layerHeight.value,
+                        stopAtHeight,
+                        schematic.heightY()
+                )) {
                     logDirect("Skipping layer that I cannot construct! Layer #" + layer);
                     layer++;
                     return onTick(calcFailed, isSafeToCancel, recursions + 1);
