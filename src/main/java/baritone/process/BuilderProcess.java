@@ -122,6 +122,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private List<BlockState> approxPlaceable;
     private int builderTick;
     private boolean manualInteractionPhase;
+    private int currentLayerMinYInclusive;
+    private int currentLayerMaxYInclusive;
+    private int manualPhaseMinY;
+    private int manualPhaseMaxY = -1;
     private Goal lastRequestedGoal;
     private int consecutivePathFailures;
     private BlockPos lastFailureObservedPlayerPos;
@@ -169,8 +173,11 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return calcFailed ? previousCount + 1 : previousCount;
     }
 
-    static boolean layerIncludesY(int y, int minYInclusive, int maxYInclusive, boolean manualInteractionPhase) {
-        return manualInteractionPhase || (y >= minYInclusive && y <= maxYInclusive);
+    static boolean isYIncludedInCurrentPass(int y, int layerMinY, int layerMaxY,
+            boolean manualInteractionPhase, int manualMinY, int manualMaxY) {
+        int minY = manualInteractionPhase ? manualMinY : layerMinY;
+        int maxY = manualInteractionPhase ? manualMaxY : layerMaxY;
+        return y >= minY && y <= maxY;
     }
 
     static int placementRetryDelayTicks(int attemptNumber) {
@@ -230,6 +237,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         this.origin = new Vec3i(x, y, z);
         this.paused = false;
+        this.currentLayerMinYInclusive = 0;
+        this.currentLayerMaxYInclusive = schematic.heightY() - 1;
+        this.manualPhaseMinY = 0;
+        this.manualPhaseMaxY = -1;
         this.layer = Baritone.settings().startAtLayer.value;
         this.stopAtHeight = schematic.heightY();
         if (Baritone.settings().buildOnlySelection.value && buildingSelectionSchematic) {  // currently redundant but safer maybe
@@ -924,6 +935,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 maxYInclusive = layer * Baritone.settings().layerHeight.value - 1;
                 minYInclusive = 0;
             }
+            currentLayerMinYInclusive = minYInclusive;
+            currentLayerMaxYInclusive = maxYInclusive;
             schematic = new ISchematic() {
                 @Override
                 public BlockState desiredState(int x, int y, int z, BlockState current, List<BlockState> approxPlaceable) {
@@ -933,7 +946,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 @Override
                 public boolean inSchematic(int x, int y, int z, BlockState currentState) {
                     return ISchematic.super.inSchematic(x, y, z, currentState)
-                            && layerIncludesY(y, minYInclusive, maxYInclusive, manualInteractionPhase)
+                            && isYIncludedInCurrentPass(
+                                    y, minYInclusive, maxYInclusive,
+                                    manualInteractionPhase, manualPhaseMinY, manualPhaseMaxY
+                            )
                             && realSchematic.inSchematic(x, y, z, currentState);
                 }
 
@@ -973,7 +989,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     toggleAttempts.clear();
                     return onTick(calcFailed, isSafeToCancel, recursions + 1);
                 }
-                // The final interaction pass intentionally scans the entire schematic, not just its last layer.
+                // The final interaction pass covers every layer that was actually built, including
+                // earlier layers, but never extends past a user-selected stop height.
+                manualPhaseMinY = currentLayerMinYInclusive;
+                manualPhaseMaxY = currentLayerMaxYInclusive;
                 manualInteractionPhase = true;
                 incorrectPositions = null;
                 return onTick(calcFailed, isSafeToCancel, recursions + 1);
