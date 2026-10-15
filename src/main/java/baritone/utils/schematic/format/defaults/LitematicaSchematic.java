@@ -47,6 +47,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
     private static final int MAX_REGION_COUNT = 4_096;
+    private static final int MAX_PALETTE_ENTRIES = 65_536;
     private static final long MAX_REGION_VOLUME = 8_388_608L;
     // BlockState[][][] allocates one leaf array per (x, z) column; cap their count too.
     private static final long MAX_REGION_COLUMN_ARRAYS = 262_144L;
@@ -112,9 +113,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             throw new IllegalArgumentException("Litematica palette has " + paletteSize
                     + " entries but region volume is " + regionVolume);
         }
-        if (paletteSize > MAX_REGION_VOLUME) {
-            throw new IllegalArgumentException("Litematica block-state palette is too large: "
-                    + paletteSize + " entries");
+        if (paletteSize > MAX_PALETTE_ENTRIES) {
+            throw new IllegalArgumentException("Litematica block-state palette exceeds the safe entry limit: "
+                    + paletteSize + " entries (maximum " + MAX_PALETTE_ENTRIES + ")");
         }
         return paletteSize;
     }
@@ -123,9 +124,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         if (blockStatePalette.isEmpty()) {
             throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
         }
-        if (blockStatePalette.size() > MAX_REGION_VOLUME) {
-            throw new IllegalArgumentException("Litematica block-state palette is too large: "
-                    + blockStatePalette.size() + " entries");
+        if (blockStatePalette.size() > MAX_PALETTE_ENTRIES) {
+            throw new IllegalArgumentException("Litematica block-state palette exceeds the safe entry limit: "
+                    + blockStatePalette.size() + " entries (maximum " + MAX_PALETTE_ENTRIES + ")");
         }
 
         BlockState[] blockList = new BlockState[blockStatePalette.size()];
