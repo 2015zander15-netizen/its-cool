@@ -28,6 +28,16 @@ import static org.junit.Assert.assertTrue;
 public class InventoryBehaviorSlotSelectionTest {
 
     @Test
+    public void swapRequestRequiresValidSlotsAndAStillOccupiedSource() {
+        assertTrue(InventoryBehavior.isValidSwapRequest(9, 7, 36, true));
+        assertTrue(InventoryBehavior.isValidSwapRequest(35, 1, 36, true));
+        assertFalse(InventoryBehavior.isValidSwapRequest(-1, 7, 36, true));
+        assertFalse(InventoryBehavior.isValidSwapRequest(36, 7, 36, true));
+        assertFalse(InventoryBehavior.isValidSwapRequest(9, 9, 36, true));
+        assertFalse(InventoryBehavior.isValidSwapRequest(9, 7, 36, false));
+    }
+
+    @Test
     public void prefersAnEmptySlotThatIsNotNeededForAnotherBlock() {
         boolean[] emptySlots = new boolean[8];
         emptySlots[3] = true;
