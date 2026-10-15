@@ -1884,8 +1884,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
         @Override
         public String toString() {
-            return "GoalPlacementApproach{" + x + "," + y + "," + z
-                    + ", excluded=" + excludedFeetHashes.size() + "}";
+            return String.format(
+                    "GoalPlacementApproach{x=%s,y=%s,z=%s, excluded=%s}",
+                    SettingsUtil.maybeCensor(x),
+                    SettingsUtil.maybeCensor(y),
+                    SettingsUtil.maybeCensor(z),
+                    excludedFeetHashes.size()
+            );
         }
     }
 
