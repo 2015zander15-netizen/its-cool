@@ -219,12 +219,26 @@ public class BuilderProcessPlacementRetryTest {
         BlockState manuallyOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, true)
                 .setValue(DoorBlock.POWERED, false);
+        BlockState poweredOpenTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, true)
+                .setValue(TrapDoorBlock.POWERED, true);
+        BlockState closedTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState()
+                .setValue(TrapDoorBlock.OPEN, false)
+                .setValue(TrapDoorBlock.POWERED, false);
+        BlockState poweredOpenGate = Blocks.OAK_FENCE_GATE.defaultBlockState()
+                .setValue(FenceGateBlock.OPEN, true)
+                .setValue(FenceGateBlock.POWERED, true);
+        BlockState closedGate = Blocks.OAK_FENCE_GATE.defaultBlockState()
+                .setValue(FenceGateBlock.OPEN, false)
+                .setValue(FenceGateBlock.POWERED, false);
 
         assertFalse(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(manuallyOpenDoor, desired, false, Collections.emptyList()));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired, false, Collections.emptyList()));
         assertFalse(BuilderProcess.sameBlockstate(current, desired, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(current, desired, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(poweredOpenTrapdoor, closedTrapdoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(poweredOpenGate, closedGate, false, Collections.emptyList()));
         assertFalse(BuilderProcess.isDerivedStateProperty(current, property(current, "open")));
     }
 
