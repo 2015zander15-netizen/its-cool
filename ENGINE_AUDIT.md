@@ -12,7 +12,7 @@ This is an evidence-based audit and test plan, not a claim that every building b
 5. Block-state property comparisons use `Objects.equals` instead of reference identity, while known runtime redstone power flags and neighbor-derived connection/shape properties are ignored during progress checks.
 6. Litematica decoding uses checked 64-bit volume arithmetic; it rejects empty schematics and palettes, invalid/unknown block identifiers, invalid palette indices, truncated packed `BlockStates`, over-budget regions or aggregate schematics, and overflowing coordinates/extents.
 
-7. Toggle-only mismatches for doors, trapdoors, fence gates, and levers are routed through a verified right-click rather than breaking the existing block; repeated failures back off and are diagnosed.
+7. Stable toggle-only mismatches for doors, trapdoors, fence gates, levers, repeaters, and comparators are routed through verified right-clicks rather than breaking the existing block. Waiting retries yield to other build work; exhausted failures are diagnosed. Temporary button pulses and externally powered flags are treated as derived state.
 
 These changes improve defensive behavior; they do not guarantee that every modded block can be predicted or placed.
 
