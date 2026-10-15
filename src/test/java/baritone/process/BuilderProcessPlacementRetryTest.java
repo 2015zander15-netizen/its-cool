@@ -451,6 +451,16 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void layerAdvanceStopsAtSchematicDepthEvenWhenStopHeightIsLarger() {
+        assertTrue(BuilderProcess.hasMoreStructuralLayers(0, 4, 100, 10));
+        assertTrue(BuilderProcess.hasMoreStructuralLayers(1, 4, 100, 10));
+        assertFalse(BuilderProcess.hasMoreStructuralLayers(3, 4, 100, 10));
+        assertTrue(BuilderProcess.hasMoreStructuralLayers(1, 4, 5, 10));
+        assertFalse(BuilderProcess.hasMoreStructuralLayers(2, 4, 5, 10));
+        assertFalse(BuilderProcess.hasMoreStructuralLayers(0, 4, 0, 10));
+    }
+
+    @Test
     public void structuralLayerBoundsRespectStopHeightInBothOrders() {
         // Bottom-up: only y=0..4 is built when stopAtHeight is 5, even if the layer ends at y=7.
         assertEquals(0, BuilderProcess.structuralLayerMinYInclusive(10, 2, 4, false, 5));
