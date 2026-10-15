@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import baritone.api.pathing.goals.GoalBlock;
+import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -40,6 +41,7 @@ public class BuilderProcessPlacementRetryTest {
 
     @BeforeClass
     public static void bootstrapMinecraftRegistries() {
+        SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
