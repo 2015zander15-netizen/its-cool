@@ -40,7 +40,7 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 4. Inventory: required blocks partly in main inventory, not hotbar.
 5. Unreachable support: builder gives a clear failure/pause rather than retrying an impossible placement indefinitely.
 6. Pathing: reach a placement vantage point around obstacles without mining required support blocks or unsafe movement.
-7. Malformed Litematica data: reject zero dimensions, over-budget regions/aggregate schematics, overflowing signed coordinates/extents, missing palettes, invalid palette indices, unknown block identifiers, and truncated packed data cleanly.
+7. Malformed Litematica data: reject zero or more than 4,096 regions, zero dimensions, over-budget regions/aggregate schematics, overflowing signed coordinates/extents, missing palettes, invalid palette indices, unknown block identifiers, and truncated packed data cleanly.
 8. Calculator milestone: first build and verify a tiny combinational circuit, then a one-bit adder, then a small multi-bit adder with test inputs/outputs. Do not jump directly to a 64-bit calculator.
 
 ## Verification boundary
