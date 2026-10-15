@@ -121,6 +121,27 @@ public class LitematicaSchematicSafetyTest {
         new LitematicaSchematic(singleBlockSchematic(3L));
     }
 
+    @Test
+    public void acceptsPaletteNoLargerThanRegionVolume() {
+        assertEquals(1, LitematicaSchematic.validatePaletteSize(1, 1L));
+        assertEquals(2, LitematicaSchematic.validatePaletteSize(2, 2L));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsPaletteLargerThanRegionVolume() {
+        LitematicaSchematic.validatePaletteSize(2, 1L);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsEmptyPaletteSizeOrRegionVolume() {
+        LitematicaSchematic.validatePaletteSize(0, 1L);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsPaletteWithoutPositiveRegionVolume() {
+        LitematicaSchematic.validatePaletteSize(1, 0L);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsEmptyBlockPalette() {
         LitematicaSchematic.getBlockList(new ListTag());
