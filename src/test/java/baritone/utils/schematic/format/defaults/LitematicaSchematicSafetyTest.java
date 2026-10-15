@@ -17,13 +17,23 @@
 
 package baritone.utils.schematic.format.defaults;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.Blocks;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class LitematicaSchematicSafetyTest {
+
+    @BeforeClass
+    public static void bootstrapMinecraftRegistries() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
 
     @Test
     public void calculatesOrdinaryRegionVolume() {
@@ -86,6 +96,21 @@ public class LitematicaSchematicSafetyTest {
     public void rejectsEmptyBlockPalette() {
         LitematicaSchematic.getBlockList(new ListTag());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsUnknownBlockStateProperty() {
+        CompoundTag properties = new CompoundTag();
+        properties.putString("not_a_real_property", "true");
+        LitematicaSchematic.getBlockState(Blocks.STONE, properties);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsInvalidBlockStatePropertyValue() {
+        CompoundTag properties = new CompoundTag();
+        properties.putString("axis", "sideways");
+        LitematicaSchematic.getBlockState(Blocks.OAK_LOG, properties);
+    }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsTruncatedPackedBlockStateArray() {
