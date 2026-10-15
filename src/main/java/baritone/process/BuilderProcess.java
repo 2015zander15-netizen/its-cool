@@ -617,7 +617,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private void recordToggleAttempt(BlockPos pos, BlockState current, BlockState desired) {
         ToggleAttempt attempt = toggleAttempts.get(pos);
-        if (attempt == null || !attempt.originalState.equals(current)
+        if (attempt == null || !sameBlockstate(attempt.originalState, current)
                 || !sameBlockstate(attempt.desiredState, desired)) {
             attempt = new ToggleAttempt(current, desired);
             toggleAttempts.put(new BlockPos(pos), attempt);
@@ -638,7 +638,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         ToggleAttempt attempt = toggleAttempts.get(pos);
         return attempt != null && attempt.attempts >= MAX_PLACEMENT_ATTEMPTS
                 && builderTick >= attempt.retryAtTick
-                && attempt.originalState.equals(current)
+                && sameBlockstate(attempt.originalState, current)
                 && sameBlockstate(attempt.desiredState, desired);
     }
 
@@ -652,7 +652,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
             if (!needsManualInteraction(current, desired)
                     || !sameBlockstate(attempt.desiredState, desired)
-                    || !current.equals(attempt.originalState)) {
+                    || !sameBlockstate(current, attempt.originalState)) {
                 iterator.remove();
             }
         }
