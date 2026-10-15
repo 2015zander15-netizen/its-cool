@@ -151,6 +151,29 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void manualInteractionDetectionCoversSupportedStableToggles() {
+        BlockState gateClosed = Blocks.OAK_FENCE_GATE.defaultBlockState();
+        BlockState gateOpen = withBooleanProperty(gateClosed, "open", true);
+        BlockState trapdoorClosed = Blocks.OAK_TRAPDOOR.defaultBlockState();
+        BlockState trapdoorOpen = withBooleanProperty(trapdoorClosed, "open", true);
+        BlockState noteLow = withProperty(Blocks.NOTE_BLOCK.defaultBlockState(), "note", "0");
+        BlockState noteHigh = withProperty(noteLow, "note", "1");
+        BlockState sensorNormal = withBooleanProperty(Blocks.DAYLIGHT_DETECTOR.defaultBlockState(), "inverted", false);
+        BlockState sensorInverted = withBooleanProperty(sensorNormal, "inverted", true);
+        BlockState comparatorCompare = withProperty(Blocks.COMPARATOR.defaultBlockState(), "mode", "compare");
+        BlockState comparatorSubtract = withProperty(comparatorCompare, "mode", "subtract");
+        BlockState ironDoorClosed = withBooleanProperty(Blocks.IRON_DOOR.defaultBlockState(), "open", false);
+        BlockState ironDoorOpen = withBooleanProperty(ironDoorClosed, "open", true);
+
+        assertTrue(BuilderProcess.needsManualInteraction(gateClosed, gateOpen, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(trapdoorClosed, trapdoorOpen, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(noteLow, noteHigh, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(sensorNormal, sensorInverted, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.needsManualInteraction(ironDoorClosed, ironDoorOpen, false, Collections.emptyList()));
+    }
+
+    @Test
     public void derivedRedstonePropertiesAreRecognizedAsDynamic() {
         BlockState wire = Blocks.REDSTONE_WIRE.defaultBlockState();
         BlockState lever = Blocks.LEVER.defaultBlockState();
