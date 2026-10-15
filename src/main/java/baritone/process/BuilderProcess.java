@@ -812,6 +812,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
         BuilderCalculationContext bcc = new BuilderCalculationContext();
         cleanupPlacementAttempts(bcc);
+        cleanupToggleAttempts(bcc);
         if (!recalc(bcc)) {
             if (Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
                 logDirect("Starting layer " + layer);
@@ -1066,8 +1067,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private Goal assemble(BuilderCalculationContext bcc, List<BlockState> approxPlaceable, boolean logMissing) {
         List<BetterBlockPos> placeable = new ArrayList<>();
+        List<BetterBlockPos> interactable = new ArrayList<>();
         List<BetterBlockPos> deferredForSupport = new ArrayList<>();
         List<BetterBlockPos> deferredForPlacementFailure = new ArrayList<>();
+        List<BetterBlockPos> deferredForInteraction = new ArrayList<>();
         List<BetterBlockPos> breakable = new ArrayList<>();
         List<BetterBlockPos> sourceLiquids = new ArrayList<>();
         List<BetterBlockPos> flowingLiquids = new ArrayList<>();
@@ -1089,7 +1092,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     missing.put(desired, 1 + missing.getOrDefault(desired, 0));
                 }
             } else {
-                if (state.getBlock() instanceof LiquidBlock) {
+                BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), state);
+                if (needsManualInteraction(state, desired)) {
+                    if (isToggleAttemptExhausted(pos, state, desired)) {
+                        deferredForInteraction.add(pos);
+                    } else {
+                        interactable.add(pos);
+                    }
+                } else if (state.getBlock() instanceof LiquidBlock) {
                     // if the block itself is JUST a liquid (i.e. not just a waterlogged block), we CANNOT break it
                     // TODO for 1.13 make sure that this only matches pure water, not waterlogged blocks
                     if (!MovementHelper.possiblyFlowing(state)) {
@@ -1121,6 +1131,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             toPlace.add(placementGoal(pos, bcc));
         });
         sourceLiquids.forEach(pos -> toPlace.add(new GoalBlock(pos.above())));
+        interactable.forEach(pos -> toPlace.add(new GoalGetToBlock(pos)));
 
         if (!toPlace.isEmpty()) {
             return new JankyGoalComposite(new GoalComposite(toPlace.toArray(new Goal[0])), new GoalComposite(toBreak.toArray(new Goal[0])));
@@ -1136,6 +1147,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         .collect(Collectors.joining("; "));
                 logDirect("Placement was repeatedly rejected at " + examples
                         + ". Check interaction reach, the support face, inventory, and server permissions.");
+            }
+            if (logMissing && !deferredForInteraction.isEmpty()) {
+                String examples = deferredForInteraction.stream()
+                        .limit(5)
+                        .map(p -> String.format("%s,%s,%s",
+                                SettingsUtil.maybeCensor(p.getX()),
+                                SettingsUtil.maybeCensor(p.getY()),
+                                SettingsUtil.maybeCensor(p.getZ())))
+                        .collect(Collectors.joining("; "));
+                logDirect("Could not switch state of interactable blocks at " + examples
+                        + " after repeated attempts. Check reach, interaction restrictions, or whether the block is being powered by another source.");
             }
             if (logMissing && !deferredForSupport.isEmpty()) {
                 String examples = deferredForSupport.stream()
