@@ -44,6 +44,7 @@ import baritone.utils.PathingCommandContext;
 import baritone.utils.schematic.MapArtSchematic;
 import baritone.utils.schematic.SelectionSchematic;
 import baritone.utils.schematic.SchematicSystem;
+import baritone.utils.schematic.format.defaults.LitematicaSchematic;
 import baritone.utils.schematic.litematica.LitematicaHelper;
 import baritone.utils.schematic.schematica.SchematicaHelper;
 import com.google.common.collect.ImmutableMap;
@@ -271,8 +272,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         super(baritone);
     }
 
+    private void reportUnsupportedLitematicaPayload(ISchematic schematic) {
+        if (schematic instanceof LitematicaSchematic) {
+            String warning = ((LitematicaSchematic) schematic).getUnsupportedPayloadWarning();
+            if (warning != null) {
+                logDirect(warning);
+            }
+        }
+    }
+
     @Override
     public void build(String name, ISchematic schematic, Vec3i origin) {
+        reportUnsupportedLitematicaPayload(schematic);
         placementAttempts.clear();
         toggleAttempts.clear();
         deferredManualInteractionPositions.clear();
@@ -387,6 +398,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return false;
         }
         ISchematic schem = applyMapArtAndSelection(origin, parsed);
+        // Wrappers can hide the concrete loader type; warn before applying them when one was introduced.
+        if (schem != parsed) {
+            reportUnsupportedLitematicaPayload(parsed);
+        }
         build(name, schem, origin);
         return true;
     }
@@ -426,8 +441,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (LitematicaHelper.hasLoadedSchematic(i)) {
                 Tuple<IStaticSchematic, Vec3i> schematic = LitematicaHelper.getSchematic(i);
                 Vec3i correctedOrigin = schematic.getB();
-                ISchematic schematic2 = applyMapArtAndSelection(correctedOrigin, schematic.getA());
-                build(schematic.getA().toString(), schematic2, correctedOrigin);
+                IStaticSchematic raw = schematic.getA();
+                ISchematic schematic2 = applyMapArtAndSelection(correctedOrigin, raw);
+                if (schematic2 != raw) {
+                    reportUnsupportedLitematicaPayload(raw);
+                }
+                build(raw.toString(), schematic2, correctedOrigin);
             } else {
                 logDirect(String.format("List of placements has no entry %s", i + 1));
             }
