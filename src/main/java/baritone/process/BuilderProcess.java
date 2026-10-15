@@ -89,12 +89,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static final int MAX_PLACEMENT_RETRY_TICKS = 32;
 
     private static final Set<Property<?>> ORIENTATION_PROPS =
-            ImmutableSet.of(
+            Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
                     RotatedPillarBlock.AXIS, HorizontalDirectionalBlock.FACING,
                     StairBlock.FACING, StairBlock.HALF, StairBlock.SHAPE,
                     PipeBlock.NORTH, PipeBlock.EAST, PipeBlock.SOUTH, PipeBlock.WEST, PipeBlock.UP,
                     TrapDoorBlock.OPEN, TrapDoorBlock.HALF
-            );
+            )));
 
     private static final Set<String> DYNAMIC_STATE_PROPERTIES =
             ImmutableSet.of("power", "powered", "lit", "extended", "triggered", "enabled");
