@@ -121,6 +121,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private int numRepeats;
     private List<BlockState> approxPlaceable;
     private int builderTick;
+    private boolean manualInteractionPhase;
     private Goal lastRequestedGoal;
     private int consecutivePathFailures;
     private BlockPos lastFailureObservedPlayerPos;
@@ -185,6 +186,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         placementAttempts.clear();
         toggleAttempts.clear();
         builderTick = 0;
+        manualInteractionPhase = false;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
         lastFailureObservedPlayerPos = null;
@@ -954,9 +956,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         cleanupPlacementAttempts(bcc);
         cleanupToggleAttempts(bcc);
         if (!recalc(bcc)) {
+            if (!manualInteractionPhase) {
+                // Only start switching levers/openables after a complete structural pass has found
+                // no remaining blocks to place, replace, or support.
+                manualInteractionPhase = true;
+                incorrectPositions = null;
+                return onTick(calcFailed, isSafeToCancel, recursions + 1);
+            }
             if (Baritone.settings().buildInLayers.value && layer * Baritone.settings().layerHeight.value < stopAtHeight) {
                 logDirect("Starting layer " + layer);
                 layer++;
+                manualInteractionPhase = false;
+                incorrectPositions = null;
+                placementAttempts.clear();
+                toggleAttempts.clear();
                 return onTick(calcFailed, isSafeToCancel, recursions + 1);
             }
             Vec3i repeat = Baritone.settings().buildRepeat.value;
@@ -973,6 +986,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             // build repeat time
             layer = 0;
             origin = new BlockPos(origin).offset(repeat);
+            manualInteractionPhase = false;
+            incorrectPositions = null;
+            placementAttempts.clear();
+            toggleAttempts.clear();
             if (!Baritone.settings().buildRepeatSneaky.value) {
                 schematic.reset();
             }
@@ -1154,7 +1171,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     if (desired != null) {
                         // we care about this position
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
-                        if (valid(bcc.bsi.get0(x, y, z), desired, false)) {
+                        if (validForCurrentBuildPhase(bcc.bsi.get0(x, y, z), desired)) {
                             incorrectPositions.remove(pos);
                             observedCompleted.add(BetterBlockPos.longHash(pos));
                         } else {
@@ -1165,6 +1182,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 }
             }
         }
+    }
+
+    private boolean validForCurrentBuildPhase(BlockState current, BlockState desired) {
+        if (valid(current, desired, false)) {
+            return true;
+        }
+        if (manualInteractionPhase) {
+            return false;
+        }
+        return !isStructuralWorkMismatch(
+                current, desired,
+                Baritone.settings().buildIgnoreDirection.value,
+                Baritone.settings().buildIgnoreProperties.value
+        );
     }
 
     private void fullRecalc(BuilderCalculationContext bcc) {
@@ -1181,7 +1212,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     }
                     if (bcc.bsi.worldContainsLoadedChunk(blockX, blockZ)) { // check if its in render distance, not if its in cache
                         // we can directly observe this block, it is in render distance
-                        if (valid(bcc.bsi.get0(blockX, blockY, blockZ), schematic.desiredState(x, y, z, current, this.approxPlaceable), false)) {
+                        if (validForCurrentBuildPhase(
+                                bcc.bsi.get0(blockX, blockY, blockZ),
+                                schematic.desiredState(x, y, z, current, this.approxPlaceable)
+                        )) {
                             observedCompleted.add(BetterBlockPos.longHash(blockX, blockY, blockZ));
                         } else {
                             incorrectPositions.add(new BetterBlockPos(blockX, blockY, blockZ));
@@ -1598,6 +1632,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         placementAttempts.clear();
         toggleAttempts.clear();
         builderTick = 0;
+        manualInteractionPhase = false;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
         lastFailureObservedPlayerPos = null;
