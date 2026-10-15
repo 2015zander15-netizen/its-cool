@@ -853,6 +853,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 // Do not sneak: sneaking can suppress the block interaction and place the held item.
                 baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, false);
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
+                ticks = INITIAL_PLACEMENT_RETRY_TICKS;
                 BlockState current = bcc.bsi.get0(pos);
                 BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), current);
                 if (desired != null) {
@@ -894,6 +895,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
             if (isAimedAtCorrectFace(ctx.objectMouseOver(), toPlace.get().placeAgainst, toPlace.get().side)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
+                ticks = INITIAL_PLACEMENT_RETRY_TICKS;
                 BlockState desired = bcc.getSchematic(
                         toPlace.get().target.getX(), toPlace.get().target.getY(), toPlace.get().target.getZ(),
                         bcc.bsi.get0(toPlace.get().target)
