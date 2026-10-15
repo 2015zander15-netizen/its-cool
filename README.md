@@ -33,6 +33,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Compares block-state property values correctly and ignores runtime-derived redstone power flags and neighbor-derived connections/shapes so active circuitry is not dismantled.
 - Samples the support face facing toward the target (correctly reversing target-to-support direction) and requires the actual raycast to hit that exact support block and face before right-clicking.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
+- Handles toggle-only state mismatches for doors, trapdoors, fence gates, and levers with a verified right-click before considering a break; rejected interactions back off and are reported.
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 
 ### Path executor diagnostics
@@ -52,7 +53,7 @@ Each run clones the upstream branch, overlays the staged Litematica loader, buil
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
 - `baritone-1.21.11-fabric-build.zip` — the generated Fabric JAR variants
 
-Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. Recent combined source revisions have passed unit tests and the Fabric remapped JAR build. Always inspect the newest run's summary before using a new artifact. CI covers schematic loader safety and compile-time integration, not live block placement or redstone behavior.
+Workflow artifacts are temporary downloads (currently retained for 30 days); they are not a permanent GitHub Release. Recent combined source revisions have passed unit tests and the Fabric remapped JAR build. Always inspect the newest run's summary before using a new artifact. CI covers schematic loader safety, interaction decision logic, and compile-time integration, not live block placement or redstone behavior.
 
 ## Known unfinished work
 
