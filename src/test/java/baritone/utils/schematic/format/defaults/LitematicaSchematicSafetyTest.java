@@ -129,6 +129,65 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test
+    public void cleanSchematicHasNoUnsupportedPayloadWarning() {
+        LitematicaSchematic schematic = new LitematicaSchematic(singleBlockSchematic(0L));
+
+        org.junit.Assert.assertNull(schematic.getUnsupportedPayloadWarning());
+    }
+
+    @Test
+    public void reportsBlockEntityAndEntityPayloadCounts() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        CompoundTag region = nbt.getCompoundOrEmpty("Regions").getCompoundOrEmpty("single");
+        ListTag tileEntities = new ListTag();
+        tileEntities.add(new CompoundTag());
+        tileEntities.add(new CompoundTag());
+        ListTag entities = new ListTag();
+        entities.add(new CompoundTag());
+        region.put("TileEntities", tileEntities);
+        region.put("Entities", entities);
+
+        String warning = new LitematicaSchematic(nbt).getUnsupportedPayloadWarning();
+
+        org.junit.Assert.assertNotNull(warning);
+        org.junit.Assert.assertTrue(warning.contains("2 block-entity record(s)"));
+        org.junit.Assert.assertTrue(warning.contains("1 entity record(s)"));
+        org.junit.Assert.assertTrue(warning.contains("does not restore block-entity NBT/inventories"));
+    }
+
+    @Test
+    public void reportsModernBlockEntitiesPayloadsToo() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        CompoundTag region = nbt.getCompoundOrEmpty("Regions").getCompoundOrEmpty("single");
+        ListTag blockEntities = new ListTag();
+        blockEntities.add(new CompoundTag());
+        region.put("BlockEntities", blockEntities);
+
+        String warning = new LitematicaSchematic(nbt).getUnsupportedPayloadWarning();
+
+        org.junit.Assert.assertNotNull(warning);
+        org.junit.Assert.assertTrue(warning.contains("1 block-entity record(s)"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsNonListBlockEntityPayload() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        CompoundTag region = nbt.getCompoundOrEmpty("Regions").getCompoundOrEmpty("single");
+        region.putString("TileEntities", "not_an_nbt_list");
+
+        new LitematicaSchematic(nbt);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsNonListEntityPayload() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        CompoundTag region = nbt.getCompoundOrEmpty("Regions").getCompoundOrEmpty("single");
+        region.putString("Entities", "not_an_nbt_list");
+
+        new LitematicaSchematic(nbt);
+    }
+
+    @Test
     public void decodesMinimalOneBlockLitematicaSchematic() {
         LitematicaSchematic schematic = new LitematicaSchematic(singleBlockSchematic(0L));
 
