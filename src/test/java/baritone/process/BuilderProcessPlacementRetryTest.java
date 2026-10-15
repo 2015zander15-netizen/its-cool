@@ -130,7 +130,7 @@ public class BuilderProcessPlacementRetryTest {
         BlockState delayTwo = repeaterUnpowered.setValue(RepeaterBlock.DELAY, 2);
 
         assertTrue(BuilderProcess.isDerivedStateProperty(repeaterUnpowered, property(repeaterUnpowered, "powered")));
-        assertTrue(BuilderProcess.sameBlockstate(repeaterUnpowered, repeaterPowered));
+        assertTrue(BuilderProcess.sameBlockstate(repeaterUnpowered, repeaterPowered, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(delayOne, delayTwo, false, Collections.emptyList()));
     }
 
@@ -147,7 +147,7 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.needsManualInteraction(leverOff, leverOn, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(doorClosed, doorOpen, false, Collections.emptyList()));
         assertTrue(BuilderProcess.needsManualInteraction(repeaterOneTick, repeaterTwoTicks, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.sameBlockstate(leverOff, leverOn));
+        assertFalse(BuilderProcess.sameBlockstate(leverOff, leverOn, false, Collections.emptyList()));
     }
 
     @Test
