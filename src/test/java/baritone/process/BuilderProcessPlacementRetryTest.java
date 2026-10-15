@@ -20,8 +20,10 @@ package baritone.process;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
@@ -135,6 +137,39 @@ public class BuilderProcessPlacementRetryTest {
             throw new AssertionError("Expected property " + name + " on " + state.getBlock());
         }
         return property;
+    }
+
+    @Test
+    public void doorAndTrapdoorOpenStateDifferencesUseInteraction() {
+        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
+        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
+        BlockState closedTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
+        BlockState openTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
+
+        assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor));
+        assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor));
+    }
+
+    @Test
+    public void leverPoweredStateUsesInteractionAndOrientationMismatchDoesNot() {
+        BlockState unpoweredLever = Blocks.LEVER.defaultBlockState().setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
+        BlockState poweredLever = Blocks.LEVER.defaultBlockState().setValue(net.minecraft.world.level.block.LeverBlock.POWERED, true);
+        BlockState northDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.NORTH);
+        BlockState eastDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.EAST);
+
+        assertTrue(BuilderProcess.needsManualInteraction(unpoweredLever, poweredLever));
+        assertFalse(BuilderProcess.needsManualInteraction(northDoor, eastDoor));
+    }
+
+    @Test
+    public void interactionRaycastMustHitExactBlock() {
+        BlockPos target = new BlockPos(4, 5, 6);
+        HitResult matching = new BlockHitResult(new Vec3(4.5, 5.5, 6.5), Direction.NORTH, target, false);
+        HitResult wrong = new BlockHitResult(new Vec3(5.5, 5.5, 6.5), Direction.NORTH, new BlockPos(5, 5, 6), false);
+
+        assertTrue(BuilderProcess.isAimedAtBlock(matching, target));
+        assertFalse(BuilderProcess.isAimedAtBlock(wrong, target));
+        assertFalse(BuilderProcess.isAimedAtBlock(null, target));
     }
 
     @Test
