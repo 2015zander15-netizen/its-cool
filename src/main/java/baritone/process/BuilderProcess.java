@@ -105,7 +105,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             )));
 
     private static final Set<String> DYNAMIC_STATE_PROPERTIES =
-            ImmutableSet.of("power", "powered", "lit", "extended", "triggered", "enabled", "locked", "attached", "phase");
+            ImmutableSet.of("power", "powered", "lit", "extended", "triggered", "enabled", "locked",
+                    "attached", "phase", "sculk_sensor_phase");
     private static final Set<String> NEIGHBOR_CONNECTION_PROPERTIES =
             ImmutableSet.of("north", "east", "south", "west", "up", "down");
 
@@ -187,7 +188,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     static boolean isDeferredManualStateMismatch(BlockState current, BlockState desired,
             boolean ignoreDirection, List<String> ignoredProperties) {
-        return !valid(current, desired, false)
+        return isDeferredManualStateMismatch(
+                current, desired, ignoreDirection, ignoredProperties, valid(current, desired, false)
+        );
+    }
+
+    /**
+     * Pure classification step separated from runtime build settings so it can be tested without
+     * creating a live Minecraft client. alreadyValid is supplied by the active build policy.
+     */
+    static boolean isDeferredManualStateMismatch(BlockState current, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties, boolean alreadyValid) {
+        return !alreadyValid
                 && !isStructuralWorkMismatch(current, desired, ignoreDirection, ignoredProperties);
     }
 
