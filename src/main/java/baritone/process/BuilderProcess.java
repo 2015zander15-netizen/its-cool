@@ -591,6 +591,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))) {
                 continue;
             }
+            if (isDerivedStateProperty(current, property)) {
+                continue; // externally powered/neighbor-derived state is not a manual toggle requirement
+            }
             if (!isManualInteractionProperty(current, property)) {
                 return false;
             }
@@ -1516,6 +1519,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || normalizedClass.contains("piston")
                 || normalizedClass.contains("observer")
                 || normalizedClass.contains("tripwire")
+                || normalizedClass.contains("door")
+                || normalizedClass.contains("trapdoor")
+                || normalizedClass.contains("fencegate")
                 || normalizedClass.contains("dispenser")
                 || normalizedClass.contains("dropper")
                 || normalizedClass.contains("hopper")
