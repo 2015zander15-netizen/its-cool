@@ -64,6 +64,8 @@ import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LeverBlock;
+import net.minecraft.world.level.block.DaylightDetectorBlock;
+import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.PipeBlock;
 import net.minecraft.world.level.block.ComparatorBlock;
@@ -580,6 +582,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     || state.getBlock() instanceof FenceGateBlock;
         }
         if ("powered".equals(name) && state.getBlock() instanceof LeverBlock) {
+            return true;
+        }
+        if ("note".equals(name) && state.getBlock() instanceof NoteBlock) {
+            return true;
+        }
+        if ("inverted".equals(name) && state.getBlock() instanceof DaylightDetectorBlock) {
             return true;
         }
         if ("delay".equals(name) && state.getBlock() instanceof RepeaterBlock) {
@@ -1533,6 +1541,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if ("powered".equals(propertyName) && state.getBlock() instanceof LeverBlock) {
             return false; // lever state is selected by player interaction, not circuit power alone
         }
+        if (state.getBlock() instanceof NoteBlock
+                && ("instrument".equals(propertyName) || "powered".equals(propertyName))) {
+            return true; // instrument follows the block below; powered follows a redstone signal
+        }
         if (DYNAMIC_STATE_PROPERTIES.contains(propertyName) && isRedstoneStateBlock(normalizedClass)) {
             return true;
         }
@@ -1555,6 +1567,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private static boolean isRedstoneStateBlock(String normalizedClass) {
         return normalizedClass.contains("redstone")
                 || normalizedClass.contains("redstonewire")
+                || normalizedClass.contains("noteblock")
                 || normalizedClass.contains("repeater")
                 || normalizedClass.contains("comparator")
                 || normalizedClass.contains("lever")
