@@ -593,8 +593,13 @@ public class BuilderProcessPlacementRetryTest {
 
         assertFalse(goal.isInGoal(failedFeet.getX(), failedFeet.getY(), failedFeet.getZ()));
         assertTrue(goal.isInGoal(alternateFeet.getX(), alternateFeet.getY(), alternateFeet.getZ()));
+        assertTrue(goal.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
         assertFalse(goal.isInGoal(target.getX(), target.getY(), target.getZ()));
-        assertFalse(goal.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
+
+        BuilderProcess.GoalPlacementApproach noSameLevel = new BuilderProcess.GoalPlacementApproach(
+                target, Collections.emptySet(), false
+        );
+        assertFalse(noSameLevel.isInGoal(target.getX(), target.getY() - 1, target.getZ()));
     }
 
     @Test
