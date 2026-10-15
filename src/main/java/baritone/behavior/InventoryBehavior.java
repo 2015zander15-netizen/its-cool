@@ -126,8 +126,23 @@ public final class InventoryBehavior extends Behavior implements Helper {
         return candidates;
     }
 
+    static boolean isValidSwapRequest(int sourceSlot, int hotbarSlot, int inventorySize, boolean sourceOccupied) {
+        return sourceSlot >= 0 && sourceSlot < inventorySize
+                && hotbarSlot >= 0 && hotbarSlot < 9
+                && sourceOccupied;
+    }
+
     private boolean requestSwapWithHotBar(int inInventory, int inHotbar) {
         lastTickRequestedMove = new int[]{inInventory, inHotbar};
+        NonNullList<ItemStack> inventory = ctx.player().getInventory().getNonEquipmentItems();
+        boolean sourceOccupied = inInventory >= 0 && inInventory < inventory.size()
+                && !inventory.get(inInventory).isEmpty();
+        if (!isValidSwapRequest(inInventory, inHotbar, inventory.size(), sourceOccupied)) {
+            lastTickRequestedMove = null;
+            logDebug("Dropping stale/invalid inventory swap request for source slot " + inInventory
+                    + " and hotbar slot " + inHotbar);
+            return false;
+        }
         if (ctx.player().containerMenu != ctx.player().inventoryMenu) {
             logDebug("Inventory swap requested while a non-inventory container is open; waiting until it closes");
             return false;
