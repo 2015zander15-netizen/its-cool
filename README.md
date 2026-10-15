@@ -39,6 +39,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 - Guards the inventory/throwaway selector against exceptions from modded block placement prediction, with a block-identity fallback.
 - Does not select the temporary hotbar destination until a main-inventory swap has actually succeeded; movement placement waits in `ATTEMPTING` rather than reporting `READY_TO_PLACE` while a swap is rate-limited or awaiting stationary safety.
+- Defers inventory clicks while a chest or other non-inventory container is open, retaining the queued swap until the player returns to their inventory.
 - Cycles material stacks through hotbar slots 1–7 with reversible swaps if every temporary slot is needed, while preserving slots 0 and 8 for the tool and throwaway.
 
 ### Path executor diagnostics
