@@ -413,7 +413,8 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     }
                     BlockState curr = bcc.bsi.get0(x, y, z);
                     if (!(curr.getBlock() instanceof AirBlock) && !(curr.getBlock() == Blocks.WATER || curr.getBlock() == Blocks.LAVA)
-                            && !valid(curr, desired, false) && !needsManualInteraction(curr, desired)) {
+                            && !valid(curr, desired, false) && !needsManualInteraction(curr, desired)
+                            && !isExternallyPoweredOpenableMismatch(curr, desired)) {
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
                         Optional<Rotation> rot = RotationUtils.reachable(ctx, pos, ctx.playerController().getBlockReachDistance());
                         if (rot.isPresent()) {
@@ -598,6 +599,49 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return "mode".equals(name) && state.getBlock() instanceof ComparatorBlock;
     }
 
+    static boolean isExternallyPoweredOpenableMismatch(BlockState current, BlockState desired) {
+        return isExternallyPoweredOpenableMismatch(
+                current, desired,
+                Baritone.settings().buildIgnoreDirection.value,
+                Baritone.settings().buildIgnoreProperties.value
+        );
+    }
+
+    static boolean isExternallyPoweredOpenableMismatch(BlockState current, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties) {
+        if (current == null || desired == null || current.getBlock() != desired.getBlock()) {
+            return false;
+        }
+        if (!(current.getBlock() instanceof DoorBlock
+                || current.getBlock() instanceof TrapDoorBlock
+                || current.getBlock() instanceof FenceGateBlock)) {
+            return false;
+        }
+        Property<?> openProperty = current.getBlock().getStateDefinition().getProperty("open");
+        Property<?> poweredProperty = current.getBlock().getStateDefinition().getProperty("powered");
+        if (openProperty == null || poweredProperty == null
+                || ignoredProperties.contains(openProperty.getName())
+                || Objects.equals(current.getValues().get(openProperty), desired.getValues().get(openProperty))
+                || !Boolean.TRUE.equals(current.getValues().get(poweredProperty))) {
+            return false;
+        }
+
+        // Defer only a pure open-state mismatch controlled by the active signal. If another required
+        // state is wrong (for example facing/hinge), the builder must still be able to replace it.
+        for (Property<?> property : current.getValues().keySet()) {
+            if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))
+                    || ignoredProperties.contains(property.getName())
+                    || property.equals(openProperty)
+                    || isDerivedStateProperty(current, property)
+                    || (ignoreDirection && ORIENTATION_PROPS.contains(property)
+                    && !isManualInteractionProperty(current, property))) {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
     static boolean needsManualInteraction(BlockState current, BlockState desired) {
         return needsManualInteraction(
                 current, desired,
@@ -608,7 +652,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     static boolean needsManualInteraction(BlockState current, BlockState desired,
             boolean ignoreDirection, List<String> ignoredProperties) {
-        if (current == null || desired == null || current.getBlock() != desired.getBlock()) {
+        if (current == null || desired == null || current.getBlock() != desired.getBlock()
+                || isExternallyPoweredOpenableMismatch(
+                        current, desired, ignoreDirection, ignoredProperties)) {
             return false;
         }
         boolean hasToggleDifference = false;
@@ -1565,15 +1611,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (state.getBlock() instanceof NoteBlock
                 && ("instrument".equals(propertyName) || "powered".equals(propertyName))) {
             return true; // instrument follows the block below; powered follows a redstone signal
-        }
-        if ("open".equals(propertyName)
-                && (state.getBlock() instanceof DoorBlock
-                || state.getBlock() instanceof TrapDoorBlock
-                || state.getBlock() instanceof FenceGateBlock)) {
-            Property<?> poweredProperty = state.getBlock().getStateDefinition().getProperty("powered");
-            if (poweredProperty != null && Boolean.TRUE.equals(state.getValues().get(poweredProperty))) {
-                return true; // Redstone controls open/closed state while this block is powered.
-            }
         }
         if (DYNAMIC_STATE_PROPERTIES.contains(propertyName) && isRedstoneStateBlock(normalizedClass)) {
             return true;
