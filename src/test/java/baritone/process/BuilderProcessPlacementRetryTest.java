@@ -225,9 +225,14 @@ public class BuilderProcessPlacementRetryTest {
         BlockState poweredOnlyCurrent = Blocks.OAK_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, false)
                 .setValue(DoorBlock.POWERED, true);
+        BlockState manuallyOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, true)
+                .setValue(DoorBlock.POWERED, false);
 
-        assertTrue(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.needsManualInteraction(manuallyOpenDoor, desired, false, Collections.emptyList()));
         assertFalse(BuilderProcess.needsManualInteraction(poweredOnlyCurrent, desired, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isDerivedStateProperty(current, property(current, "open")));
     }
 
     @Test
