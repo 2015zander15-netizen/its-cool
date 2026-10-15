@@ -17,10 +17,12 @@
 
 package baritone.behavior;
 
+import baritone.testutil.MinecraftTestBootstrap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -34,6 +36,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class InventoryBehaviorSlotSelectionTest {
+
+    @BeforeClass
+    public static void bootstrapMinecraftRegistries() {
+        MinecraftTestBootstrap.ensureInitialized();
+    }
 
     @Test
     public void hotbarSelectionRequiresTheExpectedStackToBePresent() {
