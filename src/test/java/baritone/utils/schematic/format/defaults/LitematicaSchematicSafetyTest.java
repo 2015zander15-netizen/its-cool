@@ -55,6 +55,12 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsIntermediateArrayOverheadForSkinnyRegion() {
+        LitematicaSchematic.getVolume(region(262_144, 1, 1));
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsSubregionExtentOverflow() {
         LitematicaSchematic.validateExtent(Integer.MAX_VALUE - 1, 3, "x");
     }
