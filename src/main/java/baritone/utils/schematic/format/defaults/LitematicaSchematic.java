@@ -201,8 +201,15 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @param amountOfBlockTypes amount of block types in the schematic.
      * @return amount of bits used to encode a block.
      */
-    private static int getBitsPerBlock(int amountOfBlockTypes) {
-        return (int) Math.max(2, Math.ceil(Math.log(amountOfBlockTypes) / Math.log(2)));
+    static int getBitsPerBlock(int amountOfBlockTypes) {
+        if (amountOfBlockTypes <= 0) {
+            throw new IllegalArgumentException("Litematica palette must contain at least one block type");
+        }
+        // Exact integer ceiling(log2(n)); avoid floating-point rounding at powers of two.
+        int bits = amountOfBlockTypes <= 1
+                ? 0
+                : Integer.SIZE - Integer.numberOfLeadingZeros(amountOfBlockTypes - 1);
+        return Math.max(2, bits);
     }
 
     /**
