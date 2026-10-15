@@ -165,6 +165,30 @@ public class LitematicaSchematicSafetyTest {
         }
     }
 
+    @Test
+    public void decodesSeparatedSubregionsAtTheirCompositeOffsets() {
+        CompoundTag stoneRegion = region(1, 1, 1);
+        addSingleBlockPalette(stoneRegion, "minecraft:stone");
+        CompoundTag dirtRegion = region(1, 1, 1);
+        CompoundTag dirtPosition = new CompoundTag();
+        dirtPosition.putInt("x", 2);
+        dirtPosition.putInt("y", 0);
+        dirtPosition.putInt("z", 0);
+        dirtRegion.put("Position", dirtPosition);
+        addSingleBlockPalette(dirtRegion, "minecraft:dirt");
+
+        CompoundTag regions = new CompoundTag();
+        regions.put("stone", stoneRegion);
+        regions.put("dirt", dirtRegion);
+        CompoundTag nbt = new CompoundTag();
+        nbt.put("Regions", regions);
+
+        LitematicaSchematic schematic = new LitematicaSchematic(nbt);
+        assertEquals(3, schematic.widthX());
+        assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+        assertEquals(Blocks.DIRT.defaultBlockState(), schematic.getDirect(2, 0, 0));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsInvalidPackedPaletteIndexDuringDecode() {
         new LitematicaSchematic(singleBlockSchematic(3L));
@@ -332,6 +356,16 @@ public class LitematicaSchematicSafetyTest {
         CompoundTag schematic = new CompoundTag();
         schematic.put("Regions", regions);
         return schematic;
+    }
+
+    private static void addSingleBlockPalette(CompoundTag subregion, String blockName) {
+        CompoundTag entry = new CompoundTag();
+        entry.putString("Name", blockName);
+        entry.put("Properties", new CompoundTag());
+        ListTag palette = new ListTag();
+        palette.add(entry);
+        subregion.put("BlockStatePalette", palette);
+        subregion.putLongArray("BlockStates", new long[]{0L});
     }
 
     private static CompoundTag singleBlockSchematic(long packedBlockStateWord) {
