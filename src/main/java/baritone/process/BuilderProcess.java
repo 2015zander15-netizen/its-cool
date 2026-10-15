@@ -60,7 +60,10 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.PipeBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
@@ -118,6 +121,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     private BlockPos lastFailureObservedPlayerPos;
     private int lastFailureIncorrectPositionsSize;
     private final Map<BlockPos, PlacementAttempt> placementAttempts = new HashMap<>();
+    private final Map<BlockPos, ToggleAttempt> toggleAttempts = new HashMap<>();
     public int stopAtHeight = 0;
 
     private static final class PlacementAttempt {
@@ -134,6 +138,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             this.desiredState = desiredState;
             this.supportPos = new BlockPos(supportPos);
             this.originalSupportState = originalSupportState;
+        }
+    }
+
+    private static final class ToggleAttempt {
+        private final BlockState originalState;
+        private final BlockState desiredState;
+        private int attempts;
+        private int retryAtTick;
+
+        private ToggleAttempt(BlockState originalState, BlockState desiredState) {
+            this.originalState = originalState;
+            this.desiredState = desiredState;
         }
     }
 
@@ -160,6 +176,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public void build(String name, ISchematic schematic, Vec3i origin) {
         placementAttempts.clear();
+        toggleAttempts.clear();
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
@@ -235,6 +252,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     public void resume() {
         resetPathFailureTracking();
         placementAttempts.clear();
+        toggleAttempts.clear();
         paused = false;
     }
 
@@ -1250,6 +1268,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public void onLostControl() {
         placementAttempts.clear();
+        toggleAttempts.clear();
         builderTick = 0;
         lastRequestedGoal = null;
         consecutivePathFailures = 0;
