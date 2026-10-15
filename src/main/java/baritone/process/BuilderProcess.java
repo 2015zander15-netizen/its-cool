@@ -599,12 +599,19 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     static boolean needsManualInteraction(BlockState current, BlockState desired) {
+        return needsManualInteraction(
+                current, desired,
+                Baritone.settings().buildIgnoreDirection.value,
+                Baritone.settings().buildIgnoreProperties.value
+        );
+    }
+
+    static boolean needsManualInteraction(BlockState current, BlockState desired,
+            boolean ignoreDirection, List<String> ignoredProperties) {
         if (current == null || desired == null || current.getBlock() != desired.getBlock()) {
             return false;
         }
         boolean hasToggleDifference = false;
-        boolean ignoreDirection = Baritone.settings().buildIgnoreDirection.value;
-        List<String> ignoredProperties = Baritone.settings().buildIgnoreProperties.value;
         for (Property<?> property : current.getValues().keySet()) {
             if (Objects.equals(current.getValues().get(property), desired.getValues().get(property))
                     || ignoredProperties.contains(property.getName())) {
@@ -1608,11 +1615,18 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     static boolean sameBlockstate(BlockState first, BlockState second) {
+        return sameBlockstate(
+                first, second,
+                Baritone.settings().buildIgnoreDirection.value,
+                Baritone.settings().buildIgnoreProperties.value
+        );
+    }
+
+    static boolean sameBlockstate(BlockState first, BlockState second,
+            boolean ignoreDirection, List<String> ignoredProps) {
         if (first.getBlock() != second.getBlock()) {
             return false;
         }
-        boolean ignoreDirection = Baritone.settings().buildIgnoreDirection.value;
-        List<String> ignoredProps = Baritone.settings().buildIgnoreProperties.value;
         Map<Property<?>, Comparable<?>> map1 = first.getValues();
         Map<Property<?>, Comparable<?>> map2 = second.getValues();
         if (!ignoreDirection && ignoredProps.isEmpty()) {
