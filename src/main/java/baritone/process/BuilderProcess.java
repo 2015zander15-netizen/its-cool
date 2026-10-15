@@ -1819,21 +1819,17 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             return new GoalPlace(pos);
         }
 
-        Set<BlockPos> excludedFeetPositions = failedPlacementApproaches(pos, current, desired);
+        Set<BlockPos> excludedFeetPositions =
+                new HashSet<>(failedPlacementApproaches(pos, current, desired));
+        boolean hasPotentialSupport = false;
         for (Direction towardSupport : placementSupportDirections()) {
             BlockPos supportPos = pos.relative(towardSupport);
             //noinspection ConstantConditions
             if (MovementHelper.canPlaceAgainst(ctx, supportPos)) {
+                hasPotentialSupport = true;
                 // Avoid aiming for a position occupied by the support block; some partial
                 // collision shapes may otherwise be accepted as a feet-level goal.
                 excludedFeetPositions.add(new BlockPos(supportPos));
-            }
-        }
-        boolean hasPotentialSupport = false;
-        for (Direction towardSupport : placementSupportDirections()) {
-            if (MovementHelper.canPlaceAgainst(ctx, pos.relative(towardSupport))) {
-                hasPotentialSupport = true;
-                break;
             }
         }
         if (!hasPotentialSupport) {
