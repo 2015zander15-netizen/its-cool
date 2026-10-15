@@ -206,14 +206,16 @@ public class BuilderProcessPlacementRetryTest {
         BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
 
         assertTrue(BuilderProcess.isDeferredManualStateMismatch(
-                closedDoor, openDoor, false, Collections.emptyList()));
+                closedDoor, openDoor, false, Collections.emptyList(), false));
         assertFalse(BuilderProcess.isDeferredManualStateMismatch(
-                wrongFacingDoor, closedDoor, false, Collections.emptyList()));
+                wrongFacingDoor, closedDoor, false, Collections.emptyList(), false));
         assertTrue(BuilderProcess.isDeferredManualStateMismatch(
-                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList()));
+                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList(), false));
         assertFalse(BuilderProcess.isDeferredManualStateMismatch(
                 Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(),
-                false, Collections.emptyList()));
+                false, Collections.emptyList(), false));
+        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
+                closedDoor, closedDoor, false, Collections.emptyList(), true));
     }
 
     @Test
@@ -308,7 +310,7 @@ public class BuilderProcessPlacementRetryTest {
     @Test
     public void sculkSensorPhaseIsTreatedAsRuntimeDerivedState() {
         BlockState sensor = Blocks.SCULK_SENSOR.defaultBlockState();
-        assertTrue(BuilderProcess.isDerivedStateProperty(sensor, property(sensor, "phase")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(sensor, property(sensor, "sculk_sensor_phase")));
     }
 
     @Test
