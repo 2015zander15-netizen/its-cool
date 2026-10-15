@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import baritone.Baritone;
 import baritone.api.pathing.goals.GoalBlock;
@@ -284,6 +285,31 @@ public class BuilderProcessPlacementRetryTest {
                     BuilderProcess.supportFaceForTargetDirection(targetToSupport));
         }
     }
+
+    @Test
+    public void aabbFaceMultipliersSampleTheRequestedFace() {
+        AABB box = new AABB(2, 4, 6, 10, 12, 14);
+
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.UP)) {
+            assertEquals(box.maxY, BuilderProcess.sampleCoordinate(box.minY, box.maxY, point.y), 0.0001);
+        }
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.DOWN)) {
+            assertEquals(box.minY, BuilderProcess.sampleCoordinate(box.minY, box.maxY, point.y), 0.0001);
+        }
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.EAST)) {
+            assertEquals(box.maxX, BuilderProcess.sampleCoordinate(box.minX, box.maxX, point.x), 0.0001);
+        }
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.WEST)) {
+            assertEquals(box.minX, BuilderProcess.sampleCoordinate(box.minX, box.maxX, point.x), 0.0001);
+        }
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.SOUTH)) {
+            assertEquals(box.maxZ, BuilderProcess.sampleCoordinate(box.minZ, box.maxZ, point.z), 0.0001);
+        }
+        for (net.minecraft.world.phys.Vec3 point : BuilderProcess.aabbSideMultipliers(Direction.NORTH)) {
+            assertEquals(box.minZ, BuilderProcess.sampleCoordinate(box.minZ, box.maxZ, point.z), 0.0001);
+        }
+    }
+
 
     @Test
     public void hitMustMatchExactSupportBlockAndFace() {
