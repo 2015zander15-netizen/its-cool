@@ -21,6 +21,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Checks signed region-end coordinates and region-to-schematic offsets to reject integer wraparound.
 - Caps aggregate region volume, nested column-array counts, and composite bounding-box scan volume across all regions before allocating arrays.
 - Rejects empty/unknown block palettes, unknown block-state property names, invalid property values, invalid palette indices, and truncated packed `BlockStates` arrays.
+- Regression tests exercise a complete one-block Litematica NBT decode and verify an invalid packed palette index is rejected during decoding.
 
 ### Builder placement prediction safety
 `src/main/java/baritone/process/BuilderProcess.java`
