@@ -38,8 +38,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import baritone.api.pathing.goals.GoalBlock;
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
+import baritone.testutil.MinecraftTestBootstrap;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import java.util.Collections;
@@ -54,8 +53,7 @@ public class BuilderProcessPlacementRetryTest {
 
     @BeforeClass
     public static void bootstrapMinecraftRegistries() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
+        MinecraftTestBootstrap.ensureInitialized();
     }
 
     @Test
