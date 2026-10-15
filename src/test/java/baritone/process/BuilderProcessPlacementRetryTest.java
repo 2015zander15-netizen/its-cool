@@ -192,6 +192,25 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void deferredInteractionClassificationSeparatesTogglesFromStructuralWork() {
+        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
+        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
+        BlockState wrongFacingDoor = closedDoor.setValue(DoorBlock.FACING, Direction.EAST);
+        BlockState poweredOpenDoor = openDoor.setValue(DoorBlock.POWERED, true);
+        BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
+
+        assertTrue(BuilderProcess.isDeferredManualStateMismatch(
+                closedDoor, openDoor, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
+                wrongFacingDoor, closedDoor, false, Collections.emptyList()));
+        assertTrue(BuilderProcess.isDeferredManualStateMismatch(
+                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList()));
+        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
+                Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(),
+                false, Collections.emptyList()));
+    }
+
+    @Test
     public void structuralGateDefersOrdinaryBlocksButAllowsStatefulInteractions() {
         BlockState air = Blocks.AIR.defaultBlockState();
         BlockState stone = Blocks.STONE.defaultBlockState();
