@@ -155,10 +155,34 @@ public final class InventoryBehavior extends Behavior implements Helper {
             logDebug("Inventory move requested but delaying until stationary");
             return false;
         }
-        ctx.playerController().windowClick(ctx.player().inventoryMenu.containerId, inInventory < 9 ? inInventory + 36 : inInventory, inHotbar, ClickType.SWAP, ctx.player());
+        ItemStack requestedStack = inventory.get(inInventory).copy();
+        ctx.playerController().windowClick(
+                ctx.player().inventoryMenu.containerId,
+                inInventory < 9 ? inInventory + 36 : inInventory,
+                inHotbar,
+                ClickType.SWAP,
+                ctx.player()
+        );
         ticksSinceLastInventoryMove = 0;
         lastTickRequestedMove = null;
+
+        // A valid click request is not enough: the item must actually be in the requested
+        // destination before callers select that hotbar slot and attempt to place it.
+        if (!isExpectedStackInSlot(requestedStack, inventory.get(inHotbar))) {
+            logDebug("Inventory swap did not put the requested stack in hotbar slot " + inHotbar
+                    + "; refusing to select that slot");
+            return false;
+        }
         return true;
+    }
+
+    static boolean isExpectedStackInSlot(ItemStack expected, ItemStack actual) {
+        return expected != null && actual != null
+                && !expected.isEmpty() && !actual.isEmpty()
+                && expected.getCount() == actual.getCount()
+                && expected.getItem() == actual.getItem()
+                && expected.getDamageValue() == actual.getDamageValue()
+                && expected.getComponents().equals(actual.getComponents());
     }
 
     private int firstValidThrowaway() { // TODO offhand idk
