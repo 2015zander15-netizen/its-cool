@@ -684,12 +684,20 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ((BlockHitResult) hit).getBlockPos().equals(expectedBlock);
     }
 
+    static boolean supportsManualOpenToggle(BlockState state) {
+        if (state == null) {
+            return false;
+        }
+        // Iron doors and iron trapdoors have no hand-operated open action in vanilla.
+        return (state.getBlock() instanceof DoorBlock && state.getBlock() != Blocks.IRON_DOOR)
+                || (state.getBlock() instanceof TrapDoorBlock && state.getBlock() != Blocks.IRON_TRAPDOOR)
+                || state.getBlock() instanceof FenceGateBlock;
+    }
+
     static boolean isManualInteractionProperty(BlockState state, Property<?> property) {
         String name = property.getName();
         if ("open".equals(name)) {
-            return state.getBlock() instanceof DoorBlock
-                    || state.getBlock() instanceof TrapDoorBlock
-                    || state.getBlock() instanceof FenceGateBlock;
+            return supportsManualOpenToggle(state);
         }
         if ("powered".equals(name) && state.getBlock() instanceof LeverBlock) {
             return true;
@@ -728,9 +736,14 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         Property<?> poweredProperty = current.getBlock().getStateDefinition().getProperty("powered");
         if (openProperty == null || poweredProperty == null
                 || ignoredProperties.contains(openProperty.getName())
-                || Objects.equals(current.getValues().get(openProperty), desired.getValues().get(openProperty))
-                || (!Boolean.TRUE.equals(current.getValues().get(poweredProperty))
-                && !Boolean.TRUE.equals(desired.getValues().get(poweredProperty)))) {
+                || Objects.equals(current.getValues().get(openProperty), desired.getValues().get(openProperty))) {
+            return false;
+        }
+        boolean powered = Boolean.TRUE.equals(current.getValues().get(poweredProperty))
+                || Boolean.TRUE.equals(desired.getValues().get(poweredProperty));
+        boolean redstoneOnlyOpenable = current.getBlock() == Blocks.IRON_DOOR
+                || current.getBlock() == Blocks.IRON_TRAPDOOR;
+        if (!powered && !redstoneOnlyOpenable) {
             return false;
         }
 
