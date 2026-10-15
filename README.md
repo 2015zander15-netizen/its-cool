@@ -38,6 +38,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Handles stable right-click-adjustable mismatches for doors, trapdoors, fence gates, levers, repeaters, comparators, note-block pitch, and daylight-sensor inversion before considering a break; rejected interactions back off, are deferred while other work proceeds, and are reported when no other work remains. Temporary button pulses and externally powered states are not treated as user-settable targets.
 - Provides composite approach goals for multiple usable support sides so pathfinding can choose a reachable side instead of the first candidate.
 - Guards the inventory/throwaway selector against exceptions from modded block placement prediction, with a block-identity fallback.
+- Does not select the temporary hotbar destination until a main-inventory swap has actually succeeded; movement placement waits in `ATTEMPTING` rather than reporting `READY_TO_PLACE` while a swap is rate-limited or awaiting stationary safety.
 - Cycles material stacks through hotbar slots 1–7 with reversible swaps if every temporary slot is needed, while preserving slots 0 and 8 for the tool and throwaway.
 
 ### Path executor diagnostics
@@ -51,7 +52,7 @@ These are narrow defensive fixes. They are **not** a general rewrite of block pl
 
 Workflow: [GitHub Actions runs](https://github.com/2015zander15-netizen/its-cool/actions/workflows/verify-litematica-patch.yml)
 
-Each run clones the upstream branch, overlays the staged Litematica loader, builder process, inventory behavior, path executor, and both regression-test files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. The newest source edits require their own successful run; older artifacts may omit later fixes. It uploads:
+Each run clones the upstream branch, overlays the staged Litematica loader, builder process, inventory behavior, movement helper, path executor, and regression-test files, checks the diff, packages the full source tree, generates a patch from the actual source diff, runs tests, and builds the Fabric remapped JAR. The newest source edits require their own successful run; older artifacts may omit later fixes. It uploads:
 - `baritone-1.21.11-source-with-engine-fixes.zip` — full patched source and tests
 
 - `baritone-engine-fixes-patch.zip` — source diff against upstream
