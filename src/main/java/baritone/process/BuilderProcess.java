@@ -1928,7 +1928,6 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private static boolean isRedstoneStateBlock(String normalizedClass) {
         return normalizedClass.contains("redstone")
-                || normalizedClass.contains("redstonewire")
                 || normalizedClass.contains("noteblock")
                 || normalizedClass.contains("repeater")
                 || normalizedClass.contains("comparator")
@@ -1938,13 +1937,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || normalizedClass.contains("pressure_plate")
                 || normalizedClass.contains("piston")
                 || normalizedClass.contains("observer")
-                || normalizedClass.contains("repeater")
-                || normalizedClass.contains("comparator")
-                || normalizedClass.contains("noteblock")
                 || normalizedClass.contains("tripwire")
-                || normalizedClass.contains("door")
-                || normalizedClass.contains("trapdoor")
-                || normalizedClass.contains("fencegate")
                 || normalizedClass.contains("dispenser")
                 || normalizedClass.contains("dropper")
                 || normalizedClass.contains("hopper")
