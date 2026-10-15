@@ -179,11 +179,15 @@ public class BuilderProcessPlacementRetryTest {
         BlockState northFacingChest = singleChest.setValue(ChestBlock.FACING, Direction.NORTH);
         BlockState eastFacingChest = leftChest.setValue(ChestBlock.FACING, Direction.EAST);
         BlockState vine = Blocks.VINE.defaultBlockState();
+        BlockState gate = Blocks.OAK_FENCE_GATE.defaultBlockState();
+        BlockState chorusPlant = Blocks.CHORUS_PLANT.defaultBlockState();
 
         assertTrue(BuilderProcess.isDerivedStateProperty(singleChest, property(singleChest, "type")));
         assertTrue(BuilderProcess.sameBlockstate(singleChest, leftChest, false, Collections.emptyList()));
         assertFalse(BuilderProcess.sameBlockstate(northFacingChest, eastFacingChest, false, Collections.emptyList()));
         assertTrue(BuilderProcess.isDerivedStateProperty(vine, property(vine, "north")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(gate, property(gate, "in_wall")));
+        assertTrue(BuilderProcess.isDerivedStateProperty(chorusPlant, property(chorusPlant, "down")));
     }
 
     @Test
