@@ -106,6 +106,21 @@ public class LitematicaSchematicSafetyTest {
         LitematicaSchematic.validateRegionCount(0);
     }
 
+    @Test
+    public void decodesMinimalOneBlockLitematicaSchematic() {
+        LitematicaSchematic schematic = new LitematicaSchematic(singleBlockSchematic(0L));
+
+        assertEquals(1, schematic.widthX());
+        assertEquals(1, schematic.heightY());
+        assertEquals(1, schematic.lengthZ());
+        assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsInvalidPackedPaletteIndexDuringDecode() {
+        new LitematicaSchematic(singleBlockSchematic(3L));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsEmptyBlockPalette() {
         LitematicaSchematic.getBlockList(new ListTag());
@@ -184,6 +199,24 @@ public class LitematicaSchematicSafetyTest {
     @Test(expected = IllegalArgumentException.class)
     public void rejectsOverflowingSchematicOffset() {
         LitematicaSchematic.getCheckedOffset(Integer.MAX_VALUE, Integer.MIN_VALUE, "x");
+    }
+
+    private static CompoundTag singleBlockSchematic(long packedBlockStateWord) {
+        CompoundTag subregion = region(1, 1, 1);
+        CompoundTag paletteEntry = new CompoundTag();
+        paletteEntry.putString("Name", "minecraft:stone");
+        paletteEntry.put("Properties", new CompoundTag());
+
+        ListTag palette = new ListTag();
+        palette.add(paletteEntry);
+        subregion.put("BlockStatePalette", palette);
+        subregion.putLongArray("BlockStates", new long[]{packedBlockStateWord});
+
+        CompoundTag regions = new CompoundTag();
+        regions.put("single", subregion);
+        CompoundTag schematic = new CompoundTag();
+        schematic.put("Regions", regions);
+        return schematic;
     }
 
     private static CompoundTag region(int x, int y, int z) {
