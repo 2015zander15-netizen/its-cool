@@ -35,7 +35,7 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 - Samples the support face facing toward the target and requires the actual raycast to hit that exact support block and face before right-clicking; AABB coordinate weights are tested for all six faces.
 - Requires the actual raycast to hit the selected block before mining; approximate rotation alone no longer forces a left-click.
 - Defers placement goals for blocks that cannot currently survive at the target, so support-dependent blocks are considered after their foundations or side supports.
-- Runs a structural pass before the manual-interaction pass, so toggles cannot hide unfinished placement/removal/support work even when the schematic scan is capped. Pending toggle positions remain discoverable when chunks unload.
+- Runs a structural pass before the manual-interaction pass, so toggles cannot hide unfinished placement/removal/support work even when the schematic scan is capped. Pending toggle positions remain discoverable when chunks unload. In layered builds, the final interaction pass spans all completed layers but respects stop height and the active selection mask.
 - Interacts with stable manual state properties for doors, trapdoors, fence gates, levers, note pitches, daylight detector inversion, repeater delay, and comparator mode; buttons’ short-lived powered pulses are not treated as durable targets.
 - Defers pure open-state mismatches held by active redstone power rather than repeatedly clicking or breaking those blocks.
 - Ignores neighbor-derived chest type and connection properties for vines/connection blocks while preserving facing checks.
