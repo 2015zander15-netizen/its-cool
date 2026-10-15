@@ -1878,6 +1878,19 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
      */
     static boolean isDerivedStateProperty(BlockState state, Property<?> property) {
         String propertyName = property.getName();
+        // A stable state that the player can directly toggle must remain visible to schematic comparison.
+        // In particular, a lever's powered flag is manually controlled, not disposable runtime noise.
+        if (isManualInteractionProperty(state, property)) {
+            return false;
+        }
+        // Door power is externally driven even though the door's open state is not generally manual
+        // when a redstone signal controls it.
+        if ("powered".equals(propertyName)
+                && (state.getBlock() instanceof DoorBlock
+                || state.getBlock() instanceof TrapDoorBlock
+                || state.getBlock() instanceof FenceGateBlock)) {
+            return true;
+        }
         String blockClass = state.getBlock().getClass().getSimpleName();
         String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
         if ("powered".equals(propertyName) && state.getBlock() instanceof LeverBlock) {
