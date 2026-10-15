@@ -322,6 +322,11 @@ public class BuilderProcessPlacementRetryTest {
         assertFalse(BuilderProcess.isAimedAtCorrectFace(wrongFace, support, Direction.UP));
         assertFalse(BuilderProcess.isAimedAtCorrectFace(wrongBlock, support, Direction.UP));
         assertFalse(BuilderProcess.isAimedAtCorrectFace(null, support, Direction.UP));
+
+        assertTrue(BuilderProcess.isAimedAtBlock(matching, support));
+        assertTrue(BuilderProcess.isAimedAtBlock(wrongFace, support));
+        assertFalse(BuilderProcess.isAimedAtBlock(wrongBlock, support));
+        assertFalse(BuilderProcess.isAimedAtBlock(null, support));
     }
 
 
