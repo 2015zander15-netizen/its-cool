@@ -17,11 +17,10 @@
 
 package baritone.utils.schematic.format.defaults;
 
-import net.minecraft.SharedConstants;
+import baritone.testutil.MinecraftTestBootstrap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.Blocks;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,8 +31,7 @@ public class LitematicaSchematicSafetyTest {
 
     @BeforeClass
     public static void bootstrapMinecraftRegistries() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
+        MinecraftTestBootstrap.ensureInitialized();
     }
 
     @Test
