@@ -224,6 +224,27 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void toggleRetryHistoryResetsOnExactRedstoneStateChange() {
+        BlockState poweredOpen = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, true)
+                .setValue(DoorBlock.POWERED, true);
+        BlockState unpoweredOpen = poweredOpen.setValue(DoorBlock.POWERED, false);
+        BlockState desiredClosed = Blocks.OAK_DOOR.defaultBlockState()
+                .setValue(DoorBlock.OPEN, false)
+                .setValue(DoorBlock.POWERED, false);
+
+        assertTrue(BuilderProcess.toggleAttemptStateUnchanged(
+                poweredOpen, poweredOpen, desiredClosed, desiredClosed
+        ));
+        assertFalse(BuilderProcess.toggleAttemptStateUnchanged(
+                poweredOpen, unpoweredOpen, desiredClosed, desiredClosed
+        ));
+        assertFalse(BuilderProcess.toggleAttemptStateUnchanged(
+                poweredOpen, poweredOpen, desiredClosed, poweredOpen
+        ));
+    }
+
+    @Test
     public void poweredDoorFlagDoesNotPreventOpenStateInteraction() {
         BlockState current = Blocks.OAK_DOOR.defaultBlockState()
                 .setValue(DoorBlock.OPEN, true)
