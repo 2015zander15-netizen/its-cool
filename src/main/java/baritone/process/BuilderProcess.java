@@ -53,9 +53,11 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -163,6 +165,89 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             this.desiredState = desiredState;
             this.supportPos = new BlockPos(supportPos);
             this.originalSupportState = originalSupportState;
+        }
+    }
+
+    static final class MaterialRequirements {
+        final Map<Item, Integer> items = new HashMap<>();
+        final Map<BlockState, Integer> statesWithoutItems = new HashMap<>();
+    }
+
+    static MaterialRequirements countRequiredMaterials(ISchematic schematic, List<BlockState> approxPlaceable) {
+        MaterialRequirements requirements = new MaterialRequirements();
+        BlockState air = Blocks.AIR.defaultBlockState();
+        for (int x = 0; x < schematic.widthX(); x++) {
+            for (int y = 0; y < schematic.heightY(); y++) {
+                for (int z = 0; z < schematic.lengthZ(); z++) {
+                    if (!schematic.inSchematic(x, y, z, air)) {
+                        continue;
+                    }
+                    BlockState desired = normalizeSchematicBlockState(
+                            schematic.desiredState(x, y, z, air, approxPlaceable)
+                    );
+                    if (desired == null || desired.getBlock() instanceof AirBlock) {
+                        continue;
+                    }
+                    Item item = itemForSchematicState(desired);
+                    if (item == Items.AIR) {
+                        requirements.statesWithoutItems.merge(desired, 1, Integer::sum);
+                    } else {
+                        requirements.items.merge(item, 1, Integer::sum);
+                    }
+                }
+            }
+        }
+        return requirements;
+    }
+
+    static Item itemForSchematicState(BlockState state) {
+        BlockState placeableState = normalizeSchematicBlockState(state);
+        if (placeableState == null) {
+            return Items.AIR;
+        }
+        if (placeableState.is(Blocks.WATER)) {
+            return Items.WATER_BUCKET;
+        }
+        if (placeableState.is(Blocks.LAVA)) {
+            return Items.LAVA_BUCKET;
+        }
+        return placeableState.getBlock().asItem();
+    }
+
+    static Map<Item, Integer> countInventoryItems(Iterable<ItemStack> inventory) {
+        Map<Item, Integer> counts = new HashMap<>();
+        for (ItemStack stack : inventory) {
+            if (!stack.isEmpty()) {
+                counts.merge(stack.getItem(), stack.getCount(), Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    private void reportMaterialRequirements() {
+        try {
+            MaterialRequirements requirements = countRequiredMaterials(schematic, approxPlaceable(36));
+            Map<Item, Integer> carried = countInventoryItems(ctx.player().getInventory().getNonEquipmentItems());
+            logDirect("Materials for " + name + " (needed / in inventory / missing; inventory only):", false);
+            List<Item> items = new ArrayList<>(requirements.items.keySet());
+            items.sort(Comparator.comparing(item -> new ItemStack(item).getHoverName().getString()));
+            for (Item item : items) {
+                int needed = requirements.items.get(item);
+                int have = carried.getOrDefault(item, 0);
+                logDirect(String.format("%s: %d / %d / %d", new ItemStack(item).getHoverName().getString(),
+                        needed, have, Math.max(0, needed - have)), false);
+            }
+            List<Map.Entry<BlockState, Integer>> noItemStates = new ArrayList<>(requirements.statesWithoutItems.entrySet());
+            noItemStates.sort(Comparator.comparing(entry -> BuiltInRegistries.BLOCK.getKey(entry.getKey().getBlock()).toString()));
+            for (Map.Entry<BlockState, Integer> entry : noItemStates) {
+                logDirect("No placeable item for " + entry.getKey().getBlock().getName().getString()
+                        + " (" + entry.getValue() + " blocks)", false);
+            }
+            if (items.isEmpty() && noItemStates.isEmpty()) {
+                logDirect("This schematic has no placeable materials.", false);
+            }
+        } catch (RuntimeException exception) {
+            logDebug("Unable to calculate schematic material list: " + exception);
         }
     }
 
@@ -384,6 +469,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         this.numRepeats = 0;
         this.observedCompleted = new LongOpenHashSet();
         this.incorrectPositions = null;
+        reportMaterialRequirements();
     }
 
     private void resetPathFailureTracking() {
