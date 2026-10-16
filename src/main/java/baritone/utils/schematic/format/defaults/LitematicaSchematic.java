@@ -46,6 +46,9 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
+    private static final int MIN_SUPPORTED_LITEMATICA_VERSION = 6;
+    private static final int MAX_SUPPORTED_LITEMATICA_VERSION = 7;
+
     private static final int MAX_REGION_COUNT = 4_096;
     private static final int MAX_PALETTE_ENTRIES = 65_536;
     private static final long MAX_REGION_VOLUME = 8_388_608L;
@@ -78,6 +81,25 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                     + count + " (maximum " + MAX_REGION_COUNT + ")");
         }
         return count;
+    }
+
+    /**
+     * Litematica v7 keeps the same tightly packed BlockStates representation as v6, while adding
+     * metadata and optional region payload fields. Decode the shared block-state schema for both.
+     * A missing Version is accepted for legacy/test NBT roots that predate explicit version tags.
+     */
+    static int validateLitematicaVersion(CompoundTag nbt) {
+        int version = nbt.getIntOr("Version", MIN_SUPPORTED_LITEMATICA_VERSION);
+        if (version < MIN_SUPPORTED_LITEMATICA_VERSION || version > MAX_SUPPORTED_LITEMATICA_VERSION) {
+            throw new IllegalArgumentException("Unsupported Litematica schematic version " + version
+                    + "; supported versions are " + MIN_SUPPORTED_LITEMATICA_VERSION
+                    + " through " + MAX_SUPPORTED_LITEMATICA_VERSION);
+        }
+        int subVersion = nbt.getIntOr("SubVersion", 0);
+        if (version == 7 && subVersion < 0) {
+            throw new IllegalArgumentException("Invalid Litematica v7 SubVersion: " + subVersion);
+        }
+        return version;
     }
 
     private static CompoundTag[] getRegions(CompoundTag nbt) {
@@ -408,6 +430,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
+        validateLitematicaVersion(nbt);
         CompoundTag[] regions = getRegions(nbt);
         validateSchematicBudget(regions);
         unsupportedBlockEntityCount = 0L;
