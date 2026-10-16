@@ -135,6 +135,14 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void manualInteractionClickRequiresEmptyHandAndVerifiedAim() {
+        assertTrue(BuilderProcess.shouldIssueManualInteractionClick(true, true, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(false, true, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, false, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, true, false));
+    }
+
+    @Test
     public void manualToggleDifferencesRemainVisibleToBuilder() {
         BlockState leverOff = Blocks.LEVER.defaultBlockState()
                 .setValue(net.minecraft.world.level.block.LeverBlock.POWERED, false);
