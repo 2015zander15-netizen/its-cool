@@ -18,12 +18,18 @@
 package baritone.utils.schematic.format.defaults;
 
 import baritone.testutil.MinecraftTestBootstrap;
+import baritone.utils.schematic.format.DefaultSchematicFormats;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.block.Blocks;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -209,29 +215,27 @@ public class LitematicaSchematicSafetyTest {
     @Test
     public void decodesAllKnownLitematicaFormatVersionsUsingTheirPaletteEra() {
         for (int version = 1; version <= 7; version++) {
-            CompoundTag nbt = singleBlockSchematic(0L);
-            nbt.putInt("Version", version);
-            if (version < 5) {
-                // Versions 1-4 predate the 1.13 block-state flattening. A modern palette in a
-                // version-only fixture would miss the migration path used by real old files.
-                nbt.putInt("MinecraftDataVersion", 1139);
-                CompoundTag legacyState = nbt.getCompoundOrEmpty("Regions")
-                        .getCompoundOrEmpty("single").getListOrEmpty("BlockStatePalette")
-                        .getCompound(0).orElseThrow();
-                legacyState.putString("Name", "minecraft:stone");
-                CompoundTag legacyProperties = new CompoundTag();
-                legacyProperties.putString("variant", "granite");
-                legacyState.put("Properties", legacyProperties);
-            } else {
-                nbt.putInt("MinecraftDataVersion", 3953);
-            }
-            if (version >= 6) {
-                nbt.putInt("SubVersion", version == 7 ? 1 : 0);
-            }
+            CompoundTag nbt = schematicForVersion(version);
 
             LitematicaSchematic schematic = new LitematicaSchematic(nbt);
 
             assertEquals("Failed to decode Litematica format version " + version,
+                    version < 5 ? Blocks.GRANITE.defaultBlockState() : Blocks.STONE.defaultBlockState(),
+                    schematic.getDirect(0, 0, 0));
+        }
+    }
+
+    @Test
+    public void fileFormatDispatcherAcceptsAllKnownLitematicaVersions() throws IOException {
+        for (int version = 1; version <= 7; version++) {
+            CompoundTag nbt = schematicForVersion(version);
+            if (version == 7) {
+                // The user's contemporary v7/subversion-1 sample records data version 4556.
+                nbt.putInt("MinecraftDataVersion", 4556);
+            }
+            LitematicaSchematic schematic = parseThroughDefaultFormat(nbt);
+
+            assertEquals("File dispatcher rejected or misread Litematica version " + version,
                     version < 5 ? Blocks.GRANITE.defaultBlockState() : Blocks.STONE.defaultBlockState(),
                     schematic.getDirect(0, 0, 0));
         }
@@ -260,6 +264,13 @@ public class LitematicaSchematicSafetyTest {
         CompoundTag nbt = singleBlockSchematic(0L);
         nbt.putInt("Version", 8);
         new LitematicaSchematic(nbt);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void fileFormatDispatcherRejectsUnsupportedFutureLitematicaVersion() throws IOException {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        nbt.putInt("Version", 8);
+        parseThroughDefaultFormat(nbt);
     }
 
     @Test
@@ -468,6 +479,37 @@ public class LitematicaSchematicSafetyTest {
             }
         }
         return words;
+    }
+
+    private static CompoundTag schematicForVersion(int version) {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        nbt.putInt("Version", version);
+        if (version < 5) {
+            // Versions 1-4 predate the 1.13 block-state flattening. Exercise the real palette
+            // migration rather than testing a modern stone palette under a legacy version tag.
+            nbt.putInt("MinecraftDataVersion", 1139);
+            CompoundTag legacyState = nbt.getCompoundOrEmpty("Regions")
+                    .getCompoundOrEmpty("single").getListOrEmpty("BlockStatePalette")
+                    .getCompound(0).orElseThrow();
+            legacyState.putString("Name", "minecraft:stone");
+            CompoundTag legacyProperties = new CompoundTag();
+            legacyProperties.putString("variant", "granite");
+            legacyState.put("Properties", legacyProperties);
+        } else {
+            nbt.putInt("MinecraftDataVersion", 3953);
+        }
+        if (version >= 6) {
+            nbt.putInt("SubVersion", version == 7 ? 1 : 0);
+        }
+        return nbt;
+    }
+
+    private static LitematicaSchematic parseThroughDefaultFormat(CompoundTag nbt) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        NbtIo.writeCompressed(nbt, output);
+        return (LitematicaSchematic) DefaultSchematicFormats.LITEMATICA.parse(
+                new ByteArrayInputStream(output.toByteArray())
+        );
     }
 
     private static CompoundTag twoBlockSchematic() {
