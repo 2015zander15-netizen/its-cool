@@ -127,7 +127,7 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         working-directory: upstream
-        run: bash ./gradlew -Pmod_version=2.0 :fabric:remapJar --no-daemon --console=plain
+        run: bash ./gradlew -Pmod_version=2.0.1 :fabric:remapJar --no-daemon --console=plain
 
       - name: Upload patched full source ZIP
         if: always()
@@ -151,8 +151,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: baritone-1.21.11-fabric-build-v2.0
-          path: upstream/fabric/build/libs/baritone-fabric-2.0.jar
+          name: baritone-1.21.11-fabric-build-v2.0.1
+          path: upstream/fabric/build/libs/baritone-fabric-2.0.1.jar
           if-no-files-found: ignore
           retention-days: 30
 
@@ -172,3 +172,4 @@ jobs:
           if [[ "${TEST_RESULT:-}" != "success" || "${BUILD_RESULT:-}" != "success" ]]; then
             exit 1
           fi
+

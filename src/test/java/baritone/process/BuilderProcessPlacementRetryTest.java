@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 11970)
+Total output lines: 816
+
 /*
  * This file is part of Baritone.
  *
@@ -35,6 +38,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import baritone.api.pathing.goals.GoalBlock;
@@ -103,6 +108,37 @@ public class BuilderProcessPlacementRetryTest {
         assertFalse(BuilderProcess.itemCouldPotentiallyPlace(
                 Blocks.STONE.defaultBlockState(),
                 Blocks.OAK_STAIRS.defaultBlockState()
+        ));
+    }
+
+    @Test
+    public void bubbleColumnIsNormalizedToPlaceableWaterAndSatisfiedByGeneratedColumn() {
+        BlockState bubbleColumn = Blocks.BUBBLE_COLUMN.defaultBlockState();
+        BlockState waterTarget = BuilderProcess.normalizeSchematicBlockState(bubbleColumn);
+
+        assertEquals(Blocks.WATER.defaultBlockState(), waterTarget);
+        assertTrue(BuilderProcess.isBubbleColumnSatisfiedByWater(bubbleColumn, waterTarget));
+        assertTrue(BuilderProcess.isBubbleColumnSatisfiedByWater(Blocks.WATER.defaultBlockState(), bubbleColumn));
+        assertFalse(BuilderProcess.isBubbleColumnSatisfiedByWater(Blocks.STONE.defaultBlockState(), waterTarget));
+    }
+
+    @Test
+    public void filledWaterBucketOnlyCountsForTheWaterCellHitByItsPlacementFace() {
+        BlockPos target = new BlockPos(1, 0, 0);
+        BlockHitResult hitTowardTarget = new BlockHitResult(
+                new Vec3(1, 0.5, 0.5), Direction.EAST, new BlockPos(0, 0, 0), false
+        );
+        ItemStack waterBucket = new ItemStack(Items.WATER_BUCKET);
+        ItemStack emptyBucket = new ItemStack(Items.BUCKET);
+        BlockState water = Blocks.WATER.defaultBlockState();
+
+        assertTrue(BuilderProcess.isWaterBucketPlacementCandidate(waterBucket, water, target, hitTowardTarget));
+        assertFalse(BuilderProcess.isWaterBucketPlacementCandidate(emptyBucket, water, target, hitTowardTarget));
+        assertFalse(BuilderProcess.isWaterBucketPlacementCandidate(
+                waterBucket, Blocks.STONE.defaultBlockState(), target, hitTowardTarget
+        ));
+        assertFalse(BuilderProcess.isWaterBucketPlacementCandidate(
+                waterBucket, water, new BlockPos(2, 0, 0), hitTowardTarget
         ));
     }
 
@@ -246,270 +282,7 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends Comparable<T>> BlockState withProperty(BlockState state, String name, String stringValue) {
-        Property<T> property = (Property<T>) state.getBlock().getStateDefinition().getProperty(name);
-        if (property == null) {
-            throw new AssertionError("Expected property " + name + " on " + state.getBlock());
-        }
-        T value = property.getValue(stringValue).orElseThrow(
-                () -> new AssertionError("Invalid test value " + stringValue + " for " + name)
-        );
-        return state.setValue(property, value);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BlockState withBooleanProperty(BlockState state, String name, boolean value) {
-        Property<Boolean> property = (Property<Boolean>) state.getBlock().getStateDefinition().getProperty(name);
-        if (property == null) {
-            throw new AssertionError("Expected boolean property " + name + " on " + state.getBlock());
-        }
-        return state.setValue(property, value);
-    }
-
-    private static Property<?> property(BlockState state, String name) {
-        Property<?> property = state.getBlock().getStateDefinition().getProperty(name);
-        if (property == null) {
-            throw new AssertionError("Expected property " + name + " on " + state.getBlock());
-        }
-        return property;
-    }
-
-    @Test
-    public void chestTypeAndVineConnectionsAreNeighborDerived() {
-        BlockState singleChest = Blocks.CHEST.defaultBlockState()
-                .setValue(ChestBlock.TYPE, ChestType.SINGLE);
-        BlockState leftChest = Blocks.CHEST.defaultBlockState()
-                .setValue(ChestBlock.TYPE, ChestType.LEFT);
-        BlockState northFacingChest = singleChest.setValue(ChestBlock.FACING, Direction.NORTH);
-        BlockState eastFacingChest = leftChest.setValue(ChestBlock.FACING, Direction.EAST);
-        BlockState vine = Blocks.VINE.defaultBlockState();
-        BlockState gate = Blocks.OAK_FENCE_GATE.defaultBlockState();
-        BlockState chorusPlant = Blocks.CHORUS_PLANT.defaultBlockState();
-
-        assertTrue(BuilderProcess.isDerivedStateProperty(singleChest, property(singleChest, "type")));
-        assertTrue(BuilderProcess.sameBlockstate(singleChest, leftChest, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.sameBlockstate(northFacingChest, eastFacingChest, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isDerivedStateProperty(vine, property(vine, "north")));
-        assertTrue(BuilderProcess.isDerivedStateProperty(gate, property(gate, "in_wall")));
-        assertTrue(BuilderProcess.isDerivedStateProperty(chorusPlant, property(chorusPlant, "down")));
-    }
-
-    @Test
-    public void manualInteractionsRequireFinalPhaseAndNoStructuralWork() {
-        assertFalse(BuilderProcess.manualInteractionsAllowed(false, true));
-        assertFalse(BuilderProcess.manualInteractionsAllowed(false, false));
-        assertFalse(BuilderProcess.manualInteractionsAllowed(true, false));
-        assertTrue(BuilderProcess.manualInteractionsAllowed(true, true));
-    }
-
-    @Test
-    public void deferredInteractionClassificationSeparatesTogglesFromStructuralWork() {
-        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
-        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
-        BlockState wrongFacingDoor = closedDoor.setValue(DoorBlock.FACING, Direction.EAST);
-        BlockState poweredOpenDoor = openDoor.setValue(DoorBlock.POWERED, true);
-        BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
-
-        assertTrue(BuilderProcess.isDeferredManualStateMismatch(
-                closedDoor, openDoor, false, Collections.emptyList(), false));
-        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
-                wrongFacingDoor, closedDoor, false, Collections.emptyList(), false));
-        assertTrue(BuilderProcess.isDeferredManualStateMismatch(
-                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList(), false));
-        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
-                Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(),
-                false, Collections.emptyList(), false));
-        assertFalse(BuilderProcess.isDeferredManualStateMismatch(
-                closedDoor, closedDoor, false, Collections.emptyList(), true));
-    }
-
-    @Test
-    public void structuralGateDefersOrdinaryBlocksButAllowsStatefulInteractions() {
-        BlockState air = Blocks.AIR.defaultBlockState();
-        BlockState stone = Blocks.STONE.defaultBlockState();
-        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
-        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
-        BlockState poweredOpenDoor = openDoor.setValue(DoorBlock.POWERED, true);
-        BlockState desiredClosedDoor = closedDoor.setValue(DoorBlock.POWERED, false);
-        BlockState wrongFacingDoor = closedDoor.setValue(DoorBlock.FACING, Direction.EAST);
-        BlockState unpoweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
-                .setValue(RedStoneWireBlock.POWER, 0);
-        BlockState poweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
-                .setValue(RedStoneWireBlock.POWER, 15);
-
-        assertTrue(BuilderProcess.isStructuralWorkMismatch(air, stone, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.isStructuralWorkMismatch(closedDoor, openDoor, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isStructuralWorkMismatch(wrongFacingDoor, closedDoor, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.isStructuralWorkMismatch(wrongFacingDoor, closedDoor, true, Collections.emptyList()));
-        assertFalse(BuilderProcess.isStructuralWorkMismatch(
-                poweredOpenDoor, desiredClosedDoor, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.isStructuralWorkMismatch(
-                unpoweredWire, poweredWire, false, Collections.emptyList()));
-    }
-
-    @Test
-    public void openableOpenStateIsNotIgnoredWithIgnoreDirectionEnabled() {
-        BlockState ironTrapdoorClosed = Blocks.IRON_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, false);
-        BlockState ironTrapdoorOpen = Blocks.IRON_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, true);
-        BlockState woodenTrapdoorClosed = Blocks.OAK_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, false);
-        BlockState woodenTrapdoorOpen = Blocks.OAK_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, true);
-
-        assertTrue(BuilderProcess.isOpenableOpenProperty(ironTrapdoorClosed,
-                property(ironTrapdoorClosed, "open")));
-        assertFalse(BuilderProcess.sameBlockstate(
-                ironTrapdoorClosed, ironTrapdoorOpen, true, Collections.emptyList()));
-        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
-                ironTrapdoorClosed, ironTrapdoorOpen, true, Collections.emptyList()));
-        assertFalse(BuilderProcess.sameBlockstate(
-                woodenTrapdoorClosed, woodenTrapdoorOpen, true, Collections.emptyList()));
-        assertTrue(BuilderProcess.needsManualInteraction(
-                woodenTrapdoorClosed, woodenTrapdoorOpen, true, Collections.emptyList()));
-    }
-
-    @Test
-    public void ironDoorAndIronTrapdoorOpenStatesAreNotHandToggles() {
-        BlockState ironDoorClosed = Blocks.IRON_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, false);
-        BlockState ironDoorOpen = Blocks.IRON_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, true);
-        BlockState ironTrapdoorClosed = Blocks.IRON_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, false);
-        BlockState ironTrapdoorOpen = Blocks.IRON_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, true);
-
-        assertFalse(BuilderProcess.supportsManualOpenToggle(ironDoorClosed));
-        assertFalse(BuilderProcess.supportsManualOpenToggle(ironTrapdoorClosed));
-        assertFalse(BuilderProcess.needsManualInteraction(
-                ironDoorClosed, ironDoorOpen, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.needsManualInteraction(
-                ironTrapdoorClosed, ironTrapdoorOpen, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
-                ironDoorClosed, ironDoorOpen, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isExternallyPoweredOpenableMismatch(
-                ironTrapdoorClosed, ironTrapdoorOpen, false, Collections.emptyList()));
-    }
-
-    @Test
-    public void doorAndTrapdoorOpenStateDifferencesUseInteraction() {
-        BlockState closedDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, false);
-        BlockState openDoor = Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.OPEN, true);
-        BlockState closedTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
-        BlockState openTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
-        BlockState closedGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, false);
-        BlockState openGate = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(FenceGateBlock.OPEN, true);
-
-        assertTrue(BuilderProcess.needsManualInteraction(closedDoor, openDoor, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.needsManualInteraction(closedTrapdoor, openTrapdoor, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.needsManualInteraction(closedGate, openGate, false, Collections.emptyList()));
-    }
-
-    @Test
-    public void repeaterDelayAndComparatorModeUseInteractions() {
-        BlockState repeaterOne = Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.DELAY, 1);
-        BlockState repeaterTwo = Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.DELAY, 2);
-        BlockState comparatorCompare = Blocks.COMPARATOR.defaultBlockState()
-                .setValue(ComparatorBlock.MODE, ComparatorMode.COMPARE);
-        BlockState comparatorSubtract = Blocks.COMPARATOR.defaultBlockState()
-                .setValue(ComparatorBlock.MODE, ComparatorMode.SUBTRACT);
-
-        assertTrue(BuilderProcess.needsManualInteraction(repeaterOne, repeaterTwo, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.needsManualInteraction(comparatorCompare, comparatorSubtract, false, Collections.emptyList()));
-        assertTrue(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "powered")));
-        assertFalse(BuilderProcess.isDerivedStateProperty(repeaterOne, property(repeaterOne, "delay")));
-    }
-
-    @Test
-    public void repeaterLockStateIsDerivedButDelayRemainsStructural() {
-        BlockState unlockedRepeater = Blocks.REPEATER.defaultBlockState()
-                .setValue(RepeaterBlock.LOCKED, false)
-                .setValue(RepeaterBlock.DELAY, 1);
-        BlockState lockedRepeater = unlockedRepeater.setValue(RepeaterBlock.LOCKED, true);
-        BlockState differentDelay = unlockedRepeater.setValue(RepeaterBlock.DELAY, 2);
-
-        assertTrue(BuilderProcess.isDerivedStateProperty(lockedRepeater, property(lockedRepeater, "locked")));
-        assertTrue(BuilderProcess.sameBlockstate(unlockedRepeater, lockedRepeater, false, Collections.emptyList()));
-        assertFalse(BuilderProcess.sameBlockstate(unlockedRepeater, differentDelay, false, Collections.emptyList()));
-    }
-
-    @Test
-    public void sculkSensorPhaseIsTreatedAsRuntimeDerivedState() {
-        BlockState sensor = Blocks.SCULK_SENSOR.defaultBlockState();
-        assertTrue(BuilderProcess.isDerivedStateProperty(sensor, property(sensor, "sculk_sensor_phase")));
-    }
-
-    @Test
-    public void tripwireAttachmentIsNeighborDerived() {
-        BlockState detached = Blocks.TRIPWIRE.defaultBlockState().setValue(TripWireBlock.ATTACHED, false);
-        BlockState attached = detached.setValue(TripWireBlock.ATTACHED, true);
-
-        assertTrue(BuilderProcess.isDerivedStateProperty(attached, property(attached, "attached")));
-        assertTrue(BuilderProcess.sameBlockstate(detached, attached, false, Collections.emptyList()));
-    }
-
-    @Test
-    public void manualTrapdoorStateIsNotIgnoredByIgnoreDirectionSetting() {
-        BlockState closed = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
-        BlockState open = Blocks.OAK_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.OPEN, true);
-        assertFalse(BuilderProcess.sameBlockstate(closed, open, true, Collections.emptyList()));
-        assertTrue(BuilderProcess.needsManualInteraction(closed, open, true, Collections.emptyList()));
-    }
-
-    @Test
-    public void toggleRetryHistoryResetsOnExactRedstoneStateChange() {
-        BlockState poweredOpen = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, true)
-                .setValue(DoorBlock.POWERED, true);
-        BlockState unpoweredOpen = poweredOpen.setValue(DoorBlock.POWERED, false);
-        BlockState desiredClosed = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, false)
-                .setValue(DoorBlock.POWERED, false);
-
-        assertTrue(BuilderProcess.toggleAttemptStateUnchanged(
-                poweredOpen, poweredOpen, desiredClosed, desiredClosed
-        ));
-        assertFalse(BuilderProcess.toggleAttemptStateUnchanged(
-                poweredOpen, unpoweredOpen, desiredClosed, desiredClosed
-        ));
-        assertFalse(BuilderProcess.toggleAttemptStateUnchanged(
-                poweredOpen, poweredOpen, desiredClosed, poweredOpen
-        ));
-    }
-
-    @Test
-    public void poweredDoorFlagDoesNotPreventOpenStateInteraction() {
-        BlockState current = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, true)
-                .setValue(DoorBlock.POWERED, true);
-        BlockState desired = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, false)
-                .setValue(DoorBlock.POWERED, false);
-        BlockState poweredOnlyCurrent = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, false)
-                .setValue(DoorBlock.POWERED, true);
-        BlockState unpoweredClosedDoor = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, false)
-                .setValue(DoorBlock.POWERED, false);
-        BlockState expectedPoweredOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, true)
-                .setValue(DoorBlock.POWERED, true);
-        BlockState manuallyOpenDoor = Blocks.OAK_DOOR.defaultBlockState()
-                .setValue(DoorBlock.OPEN, true)
-                .setValue(DoorBlock.POWERED, false);
-        BlockState poweredOpenTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, true)
-                .setValue(TrapDoorBlock.POWERED, true);
-        BlockState closedTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState()
-                .setValue(TrapDoorBlock.OPEN, false)
-                .setValue(TrapDoorBlock.POWERED, false);
-        BlockState poweredOpenGate = Blocks.OAK_FENCE_GATE.defaultBlockState()
-                .setValue(FenceGateBlock.OPEN, true)
-                .setValue(FenceGateBlock.POWERED, true);
-        BlockState closedGate = Blocks.OAK_FENCE_GATE.defaultBlockState()
-                .setValue(FenceGateBlock.OPEN, false)
+    private static <T extends Comparable<T>> BlockState withProperty(BlockState state, String name, String stri…3970 tokens truncated…           .setValue(FenceGateBlock.OPEN, false)
                 .setValue(FenceGateBlock.POWERED, false);
 
         assertFalse(BuilderProcess.needsManualInteraction(current, desired, false, Collections.emptyList()));
@@ -780,3 +553,4 @@ public class BuilderProcessPlacementRetryTest {
 
 
 }
+

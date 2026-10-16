@@ -57,6 +57,7 @@ import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.AirBlock;
@@ -498,7 +499,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         if (!schematic.inSchematic(x - origin.getX(), y - origin.getY(), z - origin.getZ(), current)) {
             return null;
         }
-        BlockState state = schematic.desiredState(x - origin.getX(), y - origin.getY(), z - origin.getZ(), current, this.approxPlaceable);
+        BlockState state = normalizeSchematicBlockState(
+                schematic.desiredState(x - origin.getX(), y - origin.getY(), z - origin.getZ(), current, this.approxPlaceable)
+        );
         if (state.getBlock() instanceof AirBlock) {
             return null;
         }
@@ -798,7 +801,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
                     HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
                     if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == clickedFace) {
-                        OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot);
+                        OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot, targetPos);
                         if (hotbar.isPresent()) {
                             // Store the aim-processor-adjusted rotation that was actually raycast-verified.
                             return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
@@ -1065,9 +1068,13 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && sameBlockstate(attempt.desiredState, desired);
     }
 
-    private OptionalInt hasAnyItemThatWouldPlace(BlockState desired, HitResult result, Rotation rot) {
+    private OptionalInt hasAnyItemThatWouldPlace(BlockState desired, HitResult result, Rotation rot, BlockPos targetPos) {
         for (int i = 0; i < 9; i++) {
             ItemStack stack = ctx.player().getInventory().getNonEquipmentItems().get(i);
+            if (isWaterBucketPlacementCandidate(stack, desired, targetPos,
+                    result instanceof BlockHitResult ? (BlockHitResult) result : null)) {
+                return OptionalInt.of(i);
+            }
             if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem)) {
                 continue;
             }
@@ -2063,6 +2070,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<BlockState> result = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             ItemStack stack = ctx.player().getInventory().getNonEquipmentItems().get(i);
+            if (!stack.isEmpty() && stack.is(Items.WATER_BUCKET)) {
+                result.add(Blocks.WATER.defaultBlockState());
+                continue;
+            }
             if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem)) {
                 result.add(Blocks.AIR.defaultBlockState());
                 continue;
@@ -2238,6 +2249,29 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         return itemState != null && desired != null && itemState.getBlock() == desired.getBlock();
     }
 
+    static BlockState normalizeSchematicBlockState(BlockState desired) {
+        if (desired != null && desired.is(Blocks.BUBBLE_COLUMN)) {
+            // A bubble column is produced by water interacting with soul sand or magma; it is not
+            // itself an item that can be placed from the inventory.
+            return Blocks.WATER.defaultBlockState();
+        }
+        return desired;
+    }
+
+    static boolean isWaterBucketPlacementCandidate(ItemStack stack, BlockState desired, BlockPos targetPos,
+            BlockHitResult hit) {
+        return stack != null && !stack.isEmpty() && stack.is(Items.WATER_BUCKET)
+                && desired != null && desired.is(Blocks.WATER)
+                && targetPos != null && hit != null
+                && targetPos.equals(hit.getBlockPos().relative(hit.getDirection()));
+    }
+
+    static boolean isBubbleColumnSatisfiedByWater(BlockState current, BlockState desired) {
+        return current != null && desired != null
+                && ((current.is(Blocks.BUBBLE_COLUMN) && desired.is(Blocks.WATER))
+                || (current.is(Blocks.WATER) && desired.is(Blocks.BUBBLE_COLUMN)));
+    }
+
     private static boolean containsBlockState(Collection<BlockState> states, BlockState state) {
         for (BlockState testee : states) {
             if (itemCouldPotentiallyPlace(testee, state)) {
@@ -2249,6 +2283,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
     private static boolean valid(BlockState current, BlockState desired, boolean itemVerify) {
         if (desired == null) {
+            return true;
+        }
+        if (isBubbleColumnSatisfiedByWater(current, desired)) {
             return true;
         }
         if (current.getBlock() instanceof LiquidBlock && Baritone.settings().okIfWater.value) {
@@ -2297,7 +2334,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
 
         private BlockState getSchematic(int x, int y, int z, BlockState current) {
             if (schematic.inSchematic(x - originX, y - originY, z - originZ, current)) {
-                return schematic.desiredState(x - originX, y - originY, z - originZ, current, BuilderProcess.this.approxPlaceable);
+                return normalizeSchematicBlockState(schematic.desiredState(
+                        x - originX, y - originY, z - originZ, current, BuilderProcess.this.approxPlaceable
+                ));
             } else {
                 return null;
             }
@@ -2368,3 +2407,4 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 }
+
