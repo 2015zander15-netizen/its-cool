@@ -28,6 +28,8 @@ These changes improve defensive behavior; they do not guarantee that every modde
 - Stateful interaction timing needs live testing, especially paired door halves and levers affected by external redstone.
 - Water-bucket placement and bubble-column formation with the intended support blocks still need in-game acceptance testing. Automated tests cover the inventory classification and water/bubble-column state equivalence, not the live Minecraft placement result. Block-entity contents also still need separate support work.
 
+10. The bubble-column material check normalizes both the schematic target and inventory candidates. A filled water bucket in any inventory slot counts as water, full-world recalculation uses the same normalized state as nearby classification, and any residual missing-material entry is reported as water. Automatic throwaway/tool inventory moves run only while a Baritone process has control; deferred moves are discarded when control ends. Regression tests cover the slot-14 bucket case and idle-versus-active inventory control.
+
 ## Feet: movement and reachability
 
 The inspected BuilderProcess searches for nearby placements before assembling schematic goals. It now uses a placement-approach goal that excludes positions where a compatible hotbar item previously failed to find a valid placement face; these exclusions reset when the target or adjacent support states change. Nearby targets are skipped only when their unit AABB intersects the player's actual bounding box. Repeated path-calculation failures are also bounded when the same goal makes no progress. PathExecutor recalculates movement break/place/walk-into sets after world changes, checks changed movement costs, and cancels paths when movements become impossible or time out. Off-path distance and movement-recalculation timing diagnostics now use Baritone debug logging instead of printing to standard output.
@@ -49,7 +51,7 @@ No broad pathfinding algorithm or movement-cost rewrite is included. Before chan
 
 ## Verification boundary
 
-The Fabric remapped JAR containing the fluid compatibility, conservative reach, selective-sneak, and schematic material-report changes is labeled `2.0.3`, following the installed `2.0` loader build. CI cannot prove live block placement, movement under server conditions, block-entity restoration, or calculator functionality. Those remain unproven until real Minecraft acceptance tests are performed.
+The Fabric remapped JAR containing the fluid compatibility, conservative reach, selective-sneak, and schematic material-report changes is labeled `2.0.4`, following the installed `2.0` loader build. CI cannot prove live block placement, movement under server conditions, block-entity restoration, or calculator functionality. Those remain unproven until real Minecraft acceptance tests are performed.
 ## Verification boundaries
 
 The GitHub Actions workflow validates the integrated source snapshot by running the repository's Gradle unit tests and building the Fabric remapped JAR on Java 21. The unit tests exercise deterministic helper logic (schematic volume bounds, material totals and inventory counts, placement retry/backoff, support-face selection, bounded builder reach, selective sneak classification, state comparison, manual interaction classification, inventory-slot selection, and player/approach geometry). The workflow also packages the exact patched source and generated diff.
