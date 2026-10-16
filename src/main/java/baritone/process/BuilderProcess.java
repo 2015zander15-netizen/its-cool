@@ -1660,7 +1660,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     }
                     if (bcc.bsi.worldContainsLoadedChunk(blockX, blockZ)) { // check if its in render distance, not if its in cache
                         // we can directly observe this block, it is in render distance
-                        BlockState desired = schematic.desiredState(x, y, z, current, this.approxPlaceable);
+                        BlockState desired = normalizeSchematicBlockState(
+                                schematic.desiredState(x, y, z, current, this.approxPlaceable)
+                        );
                         BetterBlockPos pos = new BetterBlockPos(blockX, blockY, blockZ);
                         long positionHash = BetterBlockPos.longHash(pos);
                         if (validForCurrentBuildPhase(current, desired)) {
@@ -1733,7 +1735,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         placeable.add(pos);
                     }
                 } else {
-                    missing.put(desired, 1 + missing.getOrDefault(desired, 0));
+                    recordMissingMaterial(missing, desired);
                 }
             } else {
                 BlockState desired = bcc.getSchematic(pos.getX(), pos.getY(), pos.getZ(), state);
@@ -2202,12 +2204,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         List<BlockState> result = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             ItemStack stack = ctx.player().getInventory().getNonEquipmentItems().get(i);
-            if (!stack.isEmpty() && stack.is(Items.WATER_BUCKET)) {
-                result.add(Blocks.WATER.defaultBlockState());
-                continue;
-            }
-            if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem)) {
-                result.add(Blocks.AIR.defaultBlockState());
+            if (stack.isEmpty() || stack.is(Items.WATER_BUCKET)
+                    || !(stack.getItem() instanceof BlockItem)) {
+                result.add(approximatePlaceableState(stack, null));
                 continue;
             }
             BlockItem blockItem = (BlockItem) stack.getItem();
@@ -2221,14 +2220,30 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                     )
                 );
                 // A null prediction at the player's current position does not mean this item is useless elsewhere.
-                result.add(itemState != null ? itemState : fallbackState);
+                result.add(approximatePlaceableState(stack, itemState != null ? itemState : fallbackState));
             } catch (RuntimeException exception) {
                 // This is advisory inventory analysis; retain the block identity even if its prediction throws.
                 logDebug("Unable to approximate placement for inventory slot " + i + ": " + exception);
-                result.add(fallbackState);
+                result.add(approximatePlaceableState(stack, fallbackState));
             }
         }
         return result;
+    }
+
+    static BlockState approximatePlaceableState(ItemStack stack, BlockState predictedState) {
+        if (stack == null || stack.isEmpty()) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        if (stack.is(Items.WATER_BUCKET)) {
+            return Blocks.WATER.defaultBlockState();
+        }
+        if (!(stack.getItem() instanceof BlockItem)) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        BlockItem blockItem = (BlockItem) stack.getItem();
+        return normalizeSchematicBlockState(
+                predictedState != null ? predictedState : blockItem.getBlock().defaultBlockState()
+        );
     }
 
     /**
@@ -2404,13 +2419,25 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 || (current.is(Blocks.WATER) && desired.is(Blocks.BUBBLE_COLUMN)));
     }
 
-    private static boolean containsBlockState(Collection<BlockState> states, BlockState state) {
+    static boolean containsBlockState(Collection<BlockState> states, BlockState state) {
+        BlockState normalizedState = normalizeSchematicBlockState(state);
+        if (normalizedState == null) {
+            return false;
+        }
         for (BlockState testee : states) {
-            if (itemCouldPotentiallyPlace(testee, state)) {
+            BlockState normalizedTestee = normalizeSchematicBlockState(testee);
+            if (normalizedTestee != null && itemCouldPotentiallyPlace(normalizedTestee, normalizedState)) {
                 return true;
             }
         }
         return false;
+    }
+
+    static void recordMissingMaterial(Map<BlockState, Integer> missing, BlockState desired) {
+        BlockState materialState = normalizeSchematicBlockState(desired);
+        if (materialState != null) {
+            missing.merge(materialState, 1, Integer::sum);
+        }
     }
 
     private static boolean valid(BlockState current, BlockState desired, boolean itemVerify) {
