@@ -60,10 +60,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.block.AbstractCauldronBlock;
+import net.minecraft.world.level.block.AnvilBlock;
 import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CakeBlock;
 import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.CraftingTableBlock;
 import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LeverBlock;
@@ -93,6 +100,8 @@ import java.util.stream.Stream;
 import static baritone.api.pathing.movement.ActionCosts.COST_INF;
 
 public final class BuilderProcess extends BaritoneProcessHelper implements IBuilderProcess {
+
+    private static final double MAX_BUILDER_INTERACTION_REACH = 4.5D;
 
     private static final int MAX_PLACEMENT_ATTEMPTS = 5;
     private static final int MAX_PLACEMENT_APPROACH_FAILURES = 4_096;
@@ -553,7 +562,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                         continue;
                     }
                     Optional<Rotation> rotation = RotationUtils.reachable(
-                            ctx, pos, ctx.playerController().getBlockReachDistance()
+                            ctx, pos, builderInteractionReach(ctx.playerController().getBlockReachDistance())
                     );
                     if (rotation.isPresent()) {
                         return Optional.of(new Tuple<>(pos, rotation.get()));
@@ -585,7 +594,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                             && !valid(curr, desired, false) && !needsManualInteraction(curr, desired)
                             && !isExternallyPoweredOpenableMismatch(curr, desired)) {
                         BetterBlockPos pos = new BetterBlockPos(x, y, z);
-                        Optional<Rotation> rot = RotationUtils.reachable(ctx, pos, ctx.playerController().getBlockReachDistance());
+                        Optional<Rotation> rot = RotationUtils.reachable(
+                                ctx, pos, builderInteractionReach(ctx.playerController().getBlockReachDistance())
+                        );
                         if (rot.isPresent()) {
                             return Optional.of(new Tuple<>(pos, rot.get()));
                         }
@@ -603,14 +614,44 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         private final BlockPos placeAgainst;
         private final Direction side;
         private final Rotation rot;
+        private final boolean sneak;
 
-        public Placement(int hotbarSelection, BlockPos target, BlockPos placeAgainst, Direction side, Rotation rot) {
+        public Placement(int hotbarSelection, BlockPos target, BlockPos placeAgainst, Direction side, Rotation rot,
+                boolean sneak) {
             this.hotbarSelection = hotbarSelection;
             this.target = target;
             this.placeAgainst = placeAgainst;
             this.side = side;
             this.rot = rot;
+            this.sneak = sneak;
         }
+    }
+
+    static double builderInteractionReach(double configuredReach) {
+        if (!Double.isFinite(configuredReach) || configuredReach <= 0.0D) {
+            return 0.0D;
+        }
+        return Math.min(configuredReach, MAX_BUILDER_INTERACTION_REACH);
+    }
+
+    static boolean shouldSneakToPlaceAgainst(BlockState supportState) {
+        if (supportState == null) {
+            return false;
+        }
+        Block block = supportState.getBlock();
+        return block instanceof EntityBlock
+                || block instanceof ButtonBlock
+                || block instanceof AbstractCauldronBlock
+                || block instanceof AnvilBlock
+                || block instanceof CakeBlock
+                || block instanceof CraftingTableBlock
+                || block instanceof ChestBlock
+                || block instanceof LeverBlock
+                || block instanceof NoteBlock
+                || block instanceof DaylightDetectorBlock
+                || block instanceof ComparatorBlock
+                || block instanceof RepeaterBlock
+                || supportsManualOpenToggle(supportState);
     }
 
     static boolean targetIntersectsPlayerBounds(BlockPos target, AABB playerBounds) {
@@ -792,20 +833,25 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             }
             // Sample each component box, not only the overall bounds: stairs and other partial shapes
             // can have empty gaps inside their union bounding box.
+            boolean sneak = shouldSneakToPlaceAgainst(placeAgainstState);
+            Vec3 eyePosition = sneak ? RayTraceUtils.inferSneakingEyePosition(ctx.player()) : ctx.playerHead();
             for (AABB aabb : getShapeBoxesOrEmpty(shape, placeAgainstPos)) {
                 for (Vec3 placementMultiplier : aabbSideMultipliers(clickedFace)) {
                     double placeX = placeAgainstPos.x + sampleCoordinate(aabb.minX, aabb.maxX, placementMultiplier.x);
                     double placeY = placeAgainstPos.y + sampleCoordinate(aabb.minY, aabb.maxY, placementMultiplier.y);
                     double placeZ = placeAgainstPos.z + sampleCoordinate(aabb.minZ, aabb.maxZ, placementMultiplier.z);
-                    Rotation rot = RotationUtils.calcRotationFromVec3d(RayTraceUtils.inferSneakingEyePosition(ctx.player()), new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
+                    Rotation rot = RotationUtils.calcRotationFromVec3d(eyePosition, new Vec3(placeX, placeY, placeZ), ctx.playerRotations());
                     Rotation actualRot = baritone.getLookBehavior().getAimProcessor().peekRotation(rot);
-                    HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), actualRot, ctx.playerController().getBlockReachDistance(), true);
+                    HitResult result = RayTraceUtils.rayTraceTowards(
+                            ctx.player(), actualRot,
+                            builderInteractionReach(ctx.playerController().getBlockReachDistance()), sneak
+                    );
                     if (result != null && result.getType() == HitResult.Type.BLOCK && ((BlockHitResult) result).getBlockPos().equals(placeAgainstPos) && ((BlockHitResult) result).getDirection() == clickedFace) {
                         OptionalInt hotbar = hasAnyItemThatWouldPlace(toPlace, result, actualRot, targetPos);
                         if (hotbar.isPresent()) {
                             // Store the aim-processor-adjusted rotation that was actually raycast-verified.
                             return Optional.of(new Placement(hotbar.getAsInt(), new BetterBlockPos(x, y, z),
-                                    placeAgainstPos, clickedFace, actualRot));
+                                    placeAgainstPos, clickedFace, actualRot, sneak));
                         }
                     }
                 }
@@ -1345,7 +1391,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             Rotation rot = toPlace.get().rot;
             baritone.getLookBehavior().updateTarget(rot, true);
             ctx.player().getInventory().setSelectedSlot(toPlace.get().hotbarSelection);
-            baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, true);
+            baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, toPlace.get().sneak);
             if (isAimedAtCorrectFace(ctx.objectMouseOver(), toPlace.get().placeAgainst, toPlace.get().side)) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
                 ticks = INITIAL_PLACEMENT_RETRY_TICKS;

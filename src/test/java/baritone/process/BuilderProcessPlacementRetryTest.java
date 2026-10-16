@@ -140,6 +140,26 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void builderPlacementReachIsCappedToVanillaSurvivalRange() {
+        assertEquals(4.5D, BuilderProcess.builderInteractionReach(5.0D), 0.0D);
+        assertEquals(4.5D, BuilderProcess.builderInteractionReach(4.5D), 0.0D);
+        assertEquals(4.25D, BuilderProcess.builderInteractionReach(4.25D), 0.0D);
+        assertEquals(0.0D, BuilderProcess.builderInteractionReach(-1.0D), 0.0D);
+        assertEquals(0.0D, BuilderProcess.builderInteractionReach(Double.NaN), 0.0D);
+    }
+
+    @Test
+    public void builderOnlySneaksWhenPlacementCouldActivateTheSupportBlock() {
+        assertFalse(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.STONE.defaultBlockState()));
+        assertFalse(BuilderProcess.shouldSneakToPlaceAgainst(null));
+        assertTrue(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.CHEST.defaultBlockState()));
+        assertTrue(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.OAK_BUTTON.defaultBlockState()));
+        assertTrue(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.LEVER.defaultBlockState()));
+        assertTrue(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.OAK_TRAPDOOR.defaultBlockState()));
+        assertTrue(BuilderProcess.shouldSneakToPlaceAgainst(Blocks.CRAFTING_TABLE.defaultBlockState()));
+    }
+
+    @Test
     public void stateComparisonIgnoresWirePowerButKeepsFacing() {
         BlockState unpoweredWire = Blocks.REDSTONE_WIRE.defaultBlockState()
                 .setValue(RedStoneWireBlock.POWER, 0);
