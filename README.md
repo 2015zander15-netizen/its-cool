@@ -11,11 +11,12 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 
 ## Staged code changes
 
-### Litematica version 7 compatibility and volume safety
+### Litematica formats 1–7 and volume safety
 `src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
 
-- Explicitly accepts known Litematica format versions 1 through 7. The core region palette and tightly packed `BlockStates` layout is decoded for all known versions; legacy v1 block-entity/entity wrappers and later optional tick/payload fields do not prevent block-state construction. v6+ `SubVersion` values are validated, and unknown future versions fail clearly. A regression test decodes a one-block schematic under every known format version.
-- Regression tests cover a version 7 / subversion 1 schematic with modern metadata and pending tick lists, plus rejection of an unsupported future version.
+- Accepts all known Litematica format versions 1 through 7. Versions 1–4 use pre-1.13 palette states, which are upgraded through Minecraft's block-state data fixer before registry lookup. Versions 5–7 use flattened palettes; palettes from older Minecraft data versions are upgraded as well. If a v1–v4 file omits `MinecraftDataVersion`, the loader uses the 1.12 data version as the migration source.
+- Handles version-specific optional payloads without blocking block-state construction: legacy v1 block-entity/entity wrappers, later payload records, pending block ticks from v3, pending fluid ticks from v5, and v6+ `SubVersion` metadata. Unknown future Litematica format versions are rejected with the reported version.
+- Regression fixtures exercise genuine pre-flattening `stone[variant=granite]` palette data for formats 1–4, modern format 5–7 palettes, an old Minecraft data version inside a v7 file, v7 / subversion 1 metadata and tick fields, and rejection of an unknown future format.
 
 - Avoids multiplying three `int` dimensions before widening.
 - Uses checked 64-bit multiplication and rejects the `Integer.MIN_VALUE` dimension edge case.

@@ -207,10 +207,24 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test
-    public void acceptsAllKnownLitematicaCoreFormatVersions() {
+    public void decodesAllKnownLitematicaFormatVersionsUsingTheirPaletteEra() {
         for (int version = 1; version <= 7; version++) {
             CompoundTag nbt = singleBlockSchematic(0L);
             nbt.putInt("Version", version);
+            if (version < 5) {
+                // Versions 1-4 predate the 1.13 block-state flattening. A modern palette in a
+                // version-only fixture would miss the migration path used by real old files.
+                nbt.putInt("MinecraftDataVersion", 1139);
+                CompoundTag legacyState = nbt.getCompoundOrEmpty("Regions")
+                        .getCompoundOrEmpty("single").getListOrEmpty("BlockStatePalette")
+                        .getCompound(0).orElseThrow();
+                legacyState.putString("Name", "minecraft:stone");
+                CompoundTag legacyProperties = new CompoundTag();
+                legacyProperties.putString("variant", "granite");
+                legacyState.put("Properties", legacyProperties);
+            } else {
+                nbt.putInt("MinecraftDataVersion", 3953);
+            }
             if (version >= 6) {
                 nbt.putInt("SubVersion", version == 7 ? 1 : 0);
             }
@@ -218,8 +232,27 @@ public class LitematicaSchematicSafetyTest {
             LitematicaSchematic schematic = new LitematicaSchematic(nbt);
 
             assertEquals("Failed to decode Litematica format version " + version,
-                    Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+                    version < 5 ? Blocks.GRANITE.defaultBlockState() : Blocks.STONE.defaultBlockState(),
+                    schematic.getDirect(0, 0, 0));
         }
+    }
+
+    @Test
+    public void updatesOlderMinecraftBlockStatesInModernLitematicaFormats() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        nbt.putInt("Version", 7);
+        nbt.putInt("SubVersion", 1);
+        nbt.putInt("MinecraftDataVersion", 1139);
+        CompoundTag paletteEntry = nbt.getCompoundOrEmpty("Regions")
+                .getCompoundOrEmpty("single").getListOrEmpty("BlockStatePalette").getCompound(0).orElseThrow();
+        paletteEntry.putString("Name", "minecraft:stone");
+        CompoundTag oldProperties = new CompoundTag();
+        oldProperties.putString("variant", "granite");
+        paletteEntry.put("Properties", oldProperties);
+
+        LitematicaSchematic schematic = new LitematicaSchematic(nbt);
+
+        assertEquals(Blocks.GRANITE.defaultBlockState(), schematic.getDirect(0, 0, 0));
     }
 
     @Test(expected = IllegalArgumentException.class)

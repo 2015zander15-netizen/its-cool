@@ -20,12 +20,17 @@ package baritone.utils.schematic.format.defaults;
 import baritone.api.schematic.CompositeSchematic;
 import baritone.api.schematic.IStaticSchematic;
 import baritone.utils.schematic.StaticSchematic;
+import com.mojang.serialization.Dynamic;
+import net.minecraft.SharedConstants;
 import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.datafix.DataFixers;
+import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -46,11 +51,12 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
-    // Litematica's core region palette and tightly packed BlockStates layout is shared by
-    // format versions 1-7. Older versions differ in optional payloads (block entities, entities,
-    // and pending ticks), which this block-state builder does not restore.
+    // Litematica's region layout and tightly packed BlockStates are shared by format versions 1-7.
+    // Versions 1-4 use pre-flattening block-state names/properties and need Minecraft's data fixer
+    // before they can be decoded against the current block registry.
     private static final int MIN_SUPPORTED_LITEMATICA_VERSION = 1;
     private static final int MAX_SUPPORTED_LITEMATICA_VERSION = 7;
+    private static final int MINECRAFT_DATA_VERSION_1_12 = 1139;
 
     private static final int MAX_REGION_COUNT = 4_096;
     private static final int MAX_PALETTE_ENTRIES = 65_536;
@@ -157,6 +163,10 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     }
 
     static BlockState[] getBlockList(ListTag blockStatePalette) {
+        return getBlockList(blockStatePalette, MAX_SUPPORTED_LITEMATICA_VERSION, 0);
+    }
+
+    static BlockState[] getBlockList(ListTag blockStatePalette, int formatVersion, int minecraftDataVersion) {
         if (blockStatePalette.isEmpty()) {
             throw new IllegalArgumentException("Litematica subregion has an empty block-state palette");
         }
@@ -173,6 +183,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                         + " is not a compound tag");
             }
             CompoundTag paletteEntry = (CompoundTag) entry;
+            paletteEntry = updateBlockStateForCurrentMinecraft(paletteEntry, formatVersion, minecraftDataVersion, i);
             String blockName = paletteEntry.getStringOr("Name", "");
             final Identifier blockId;
             try {
@@ -198,6 +209,43 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             blockList[i] = getBlockState(block, properties);
         }
         return blockList;
+    }
+
+    /**
+     * Converts palette entries written against older Minecraft block registries before resolving
+     * them against this game's registry. Litematica formats 1-4 predate the 1.13 flattening and
+     * may contain legacy properties such as {@code stone[variant=granite]}. Newer format versions
+     * can also carry an older Minecraft data version, recorded separately from the Litematica
+     * format version.
+     */
+    static CompoundTag updateBlockStateForCurrentMinecraft(CompoundTag paletteEntry, int formatVersion,
+                                                            int minecraftDataVersion, int paletteIndex) {
+        int sourceDataVersion = minecraftDataVersion;
+        if (formatVersion < 5) {
+            // Formats 1-4 are the pre-flattening representation. Some early files have no
+            // MinecraftDataVersion tag, so use the last 1.12 schema in that case.
+            sourceDataVersion = sourceDataVersion > 0
+                    ? Math.min(sourceDataVersion, MINECRAFT_DATA_VERSION_1_12)
+                    : MINECRAFT_DATA_VERSION_1_12;
+        }
+        int currentDataVersion = SharedConstants.getCurrentVersion().dataVersion().version();
+        if (sourceDataVersion <= 0 || sourceDataVersion >= currentDataVersion) {
+            return paletteEntry;
+        }
+
+        try {
+            Dynamic<Tag> input = new Dynamic<>(NbtOps.INSTANCE, paletteEntry.copy());
+            Tag updated = DataFixers.getDataFixer().update(
+                    References.BLOCK_STATE, input, sourceDataVersion, currentDataVersion
+            ).getValue();
+            if (!(updated instanceof CompoundTag)) {
+                throw new IllegalArgumentException("updated palette entry is not a compound");
+            }
+            return (CompoundTag) updated;
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("Could not convert Litematica block-state palette entry "
+                    + paletteIndex + " from Minecraft data version " + sourceDataVersion, exception);
+        }
     }
 
     /**
@@ -440,7 +488,8 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * reads the file data.
      */
     private void fillInSchematic(CompoundTag nbt) {
-        validateLitematicaVersion(nbt);
+        int formatVersion = validateLitematicaVersion(nbt);
+        int minecraftDataVersion = nbt.getIntOr("MinecraftDataVersion", 0);
         CompoundTag[] regions = getRegions(nbt);
         validateSchematicBudget(regions);
         unsupportedBlockEntityCount = 0L;
@@ -467,7 +516,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
             long regionVolume = getVolume(subReg);
             ListTag usedBlockTypes = subReg.getListOrEmpty("BlockStatePalette");
             validatePaletteSize(usedBlockTypes.size(), regionVolume);
-            BlockState[] blockList = getBlockList(usedBlockTypes);
+            BlockState[] blockList = getBlockList(usedBlockTypes, formatVersion, minecraftDataVersion);
 
             int bitsPerBlock = getBitsPerBlock(usedBlockTypes.size());
             long[] blockStateArray = subReg.getLongArray("BlockStates").orElse(new long[0]);
