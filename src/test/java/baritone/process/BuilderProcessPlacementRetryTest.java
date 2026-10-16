@@ -73,6 +73,7 @@ public class BuilderProcessPlacementRetryTest {
                 Collections.nCopies(36, Blocks.AIR.defaultBlockState())
         );
         inventorySlots.set(14, placeable);
+        assertTrue(BuilderProcess.itemCouldPotentiallyPlace(placeable, bubbleColumn));
         assertTrue(BuilderProcess.containsBlockState(inventorySlots, bubbleColumn));
 
         Map<BlockState, Integer> missing = new java.util.HashMap<>();
