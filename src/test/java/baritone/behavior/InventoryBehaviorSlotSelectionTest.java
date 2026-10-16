@@ -43,6 +43,12 @@ public class InventoryBehaviorSlotSelectionTest {
     }
 
     @Test
+    public void automaticInventoryManagementRunsOnlyWhileAProcessIsInControl() {
+        assertFalse(InventoryBehavior.shouldRunInventoryManagement(false));
+        assertTrue(InventoryBehavior.shouldRunInventoryManagement(true));
+    }
+
+    @Test
     public void hotbarSelectionRequiresTheExpectedStackToBePresent() {
         ItemStack expected = new ItemStack(Items.STONE, 32);
         ItemStack exact = new ItemStack(Items.STONE, 32);
