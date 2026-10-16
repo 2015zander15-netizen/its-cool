@@ -2393,7 +2393,10 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     }
 
     static boolean itemCouldPotentiallyPlace(BlockState itemState, BlockState desired) {
-        return itemState != null && desired != null && itemState.getBlock() == desired.getBlock();
+        BlockState placeableState = normalizeSchematicBlockState(itemState);
+        BlockState desiredState = normalizeSchematicBlockState(desired);
+        return placeableState != null && desiredState != null
+                && placeableState.getBlock() == desiredState.getBlock();
     }
 
     static BlockState normalizeSchematicBlockState(BlockState desired) {
