@@ -188,6 +188,32 @@ public class LitematicaSchematicSafetyTest {
     }
 
     @Test
+    public void acceptsLitematicaVersion7WithSubVersionAndModernRegionFields() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        nbt.putInt("Version", 7);
+        nbt.putInt("SubVersion", 1);
+        nbt.putInt("MinecraftDataVersion", 3953);
+        CompoundTag metadata = new CompoundTag();
+        metadata.putString("Name", "version-seven-test");
+        metadata.putInt("RegionCount", 1);
+        nbt.put("Metadata", metadata);
+        CompoundTag region = nbt.getCompoundOrEmpty("Regions").getCompoundOrEmpty("single");
+        region.put("PendingBlockTicks", new ListTag());
+        region.put("PendingFluidTicks", new ListTag());
+
+        LitematicaSchematic schematic = new LitematicaSchematic(nbt);
+
+        assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsUnsupportedFutureLitematicaVersionClearly() {
+        CompoundTag nbt = singleBlockSchematic(0L);
+        nbt.putInt("Version", 8);
+        new LitematicaSchematic(nbt);
+    }
+
+    @Test
     public void decodesMinimalOneBlockLitematicaSchematic() {
         LitematicaSchematic schematic = new LitematicaSchematic(singleBlockSchematic(0L));
 
