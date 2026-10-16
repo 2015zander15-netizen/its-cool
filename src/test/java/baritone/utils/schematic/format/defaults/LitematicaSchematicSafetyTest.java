@@ -206,6 +206,22 @@ public class LitematicaSchematicSafetyTest {
         assertEquals(Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
     }
 
+    @Test
+    public void acceptsAllKnownLitematicaCoreFormatVersions() {
+        for (int version = 1; version <= 7; version++) {
+            CompoundTag nbt = singleBlockSchematic(0L);
+            nbt.putInt("Version", version);
+            if (version >= 6) {
+                nbt.putInt("SubVersion", version == 7 ? 1 : 0);
+            }
+
+            LitematicaSchematic schematic = new LitematicaSchematic(nbt);
+
+            assertEquals("Failed to decode Litematica format version " + version,
+                    Blocks.STONE.defaultBlockState(), schematic.getDirect(0, 0, 0));
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsUnsupportedFutureLitematicaVersionClearly() {
         CompoundTag nbt = singleBlockSchematic(0L);
