@@ -11,8 +11,11 @@ This repository is a **staging/handoff repository**, not a replacement for upstr
 
 ## Staged code changes
 
-### Litematica volume safety
+### Litematica version 7 compatibility and volume safety
 `src/main/java/baritone/utils/schematic/format/defaults/LitematicaSchematic.java`
+
+- Explicitly accepts Litematica format versions 6 and 7. Version 7 retains the tightly packed `BlockStates` representation used by v6 while adding metadata and optional region payload fields; the loader decodes the shared block-state schema and gives a clear error for unsupported versions.
+- Regression tests cover a version 7 / subversion 1 schematic with modern metadata and pending tick lists, plus rejection of an unsupported future version.
 
 - Avoids multiplying three `int` dimensions before widening.
 - Uses checked 64-bit multiplication and rejects the `Integer.MIN_VALUE` dimension edge case.
