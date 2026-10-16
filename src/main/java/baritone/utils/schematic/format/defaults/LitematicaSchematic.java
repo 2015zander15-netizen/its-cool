@@ -46,7 +46,10 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
     // The decoder materializes a three-dimensional BlockState reference array.
     // Keep malformed or enormous inputs from exhausting the client heap.
-    private static final int MIN_SUPPORTED_LITEMATICA_VERSION = 6;
+    // Litematica's core region palette and tightly packed BlockStates layout is shared by
+    // format versions 1-7. Older versions differ in optional payloads (block entities, entities,
+    // and pending ticks), which this block-state builder does not restore.
+    private static final int MIN_SUPPORTED_LITEMATICA_VERSION = 1;
     private static final int MAX_SUPPORTED_LITEMATICA_VERSION = 7;
 
     private static final int MAX_REGION_COUNT = 4_096;
@@ -84,9 +87,13 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     }
 
     /**
-     * Litematica v7 keeps the same tightly packed BlockStates representation as v6, while adding
-     * metadata and optional region payload fields. Decode the shared block-state schema for both.
-     * A missing Version is accepted for legacy/test NBT roots that predate explicit version tags.
+     * Litematica versions 1-7 share the region's palette and tightly packed BlockStates core used
+     * to reconstruct block positions. Format versions differ in optional payload layouts: v1 uses
+     * legacy wrappers for block entities/entities, v2 moves their coordinates into each payload,
+     * v3 adds pending block ticks, v5 adds pending fluid ticks, and v6+ adds SubVersion metadata.
+     * These payloads are not restored by Baritone's block-state builder, but their presence must
+     * not prevent the supported block-state layout from loading. A missing Version is accepted for
+     * legacy/test NBT roots that predate explicit version tags.
      */
     static int validateLitematicaVersion(CompoundTag nbt) {
         int version = nbt.getIntOr("Version", MIN_SUPPORTED_LITEMATICA_VERSION);
@@ -95,9 +102,12 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
                     + "; supported versions are " + MIN_SUPPORTED_LITEMATICA_VERSION
                     + " through " + MAX_SUPPORTED_LITEMATICA_VERSION);
         }
-        int subVersion = nbt.getIntOr("SubVersion", 0);
-        if (version == 7 && subVersion < 0) {
-            throw new IllegalArgumentException("Invalid Litematica v7 SubVersion: " + subVersion);
+        if (version >= 6) {
+            int subVersion = nbt.getIntOr("SubVersion", 0);
+            if (subVersion < 0) {
+                throw new IllegalArgumentException("Invalid Litematica v" + version
+                        + " SubVersion: " + subVersion);
+            }
         }
         return version;
     }
