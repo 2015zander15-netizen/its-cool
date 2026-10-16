@@ -69,7 +69,11 @@ public class BuilderProcessPlacementRetryTest {
         BlockState bubbleColumn = Blocks.BUBBLE_COLUMN.defaultBlockState();
 
         assertEquals(Blocks.WATER.defaultBlockState(), placeable);
-        assertTrue(BuilderProcess.containsBlockState(Collections.singletonList(placeable), bubbleColumn));
+        java.util.List<BlockState> inventorySlots = new java.util.ArrayList<>(
+                Collections.nCopies(36, Blocks.AIR.defaultBlockState())
+        );
+        inventorySlots.set(14, placeable);
+        assertTrue(BuilderProcess.containsBlockState(inventorySlots, bubbleColumn));
 
         Map<BlockState, Integer> missing = new java.util.HashMap<>();
         BuilderProcess.recordMissingMaterial(missing, bubbleColumn);
