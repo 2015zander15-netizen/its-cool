@@ -36,14 +36,17 @@ import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import baritone.api.pathing.goals.GoalBlock;
 import baritone.testutil.MinecraftTestBootstrap;
+import baritone.utils.schematic.StaticSchematic;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import java.util.Collections;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -117,6 +120,37 @@ public class BuilderProcessPlacementRetryTest {
         assertTrue(BuilderProcess.isBubbleColumnSatisfiedByWater(bubbleColumn, waterTarget));
         assertTrue(BuilderProcess.isBubbleColumnSatisfiedByWater(Blocks.WATER.defaultBlockState(), bubbleColumn));
         assertFalse(BuilderProcess.isBubbleColumnSatisfiedByWater(Blocks.STONE.defaultBlockState(), waterTarget));
+    }
+
+    @Test
+    public void materialReportCountsPlaceableItemsAndNormalizesBubbleColumnsToWaterBuckets() {
+        BlockState[][][] states = new BlockState[1][1][5];
+        states[0][0][0] = Blocks.STONE.defaultBlockState();
+        states[0][0][1] = Blocks.STONE.defaultBlockState();
+        states[0][0][2] = Blocks.BUBBLE_COLUMN.defaultBlockState();
+        states[0][0][3] = Blocks.WATER.defaultBlockState();
+        states[0][0][4] = Blocks.AIR.defaultBlockState();
+
+        BuilderProcess.MaterialRequirements materials = BuilderProcess.countRequiredMaterials(
+                new StaticSchematic(states), Collections.emptyList()
+        );
+
+        assertEquals(Integer.valueOf(2), materials.items.get(Items.STONE));
+        assertEquals(Integer.valueOf(2), materials.items.get(Items.WATER_BUCKET));
+        assertTrue(materials.statesWithoutItems.isEmpty());
+    }
+
+    @Test
+    public void materialReportShowsInventoryTotalsForMissingCounts() {
+        Map<Item, Integer> carried = BuilderProcess.countInventoryItems(java.util.Arrays.asList(
+                new ItemStack(Items.STONE, 32),
+                new ItemStack(Items.STONE, 5),
+                new ItemStack(Items.WATER_BUCKET)
+        ));
+
+        assertEquals(Integer.valueOf(37), carried.get(Items.STONE));
+        assertEquals(Integer.valueOf(1), carried.get(Items.WATER_BUCKET));
+        assertEquals(Integer.valueOf(0), carried.getOrDefault(Items.DIAMOND, 0));
     }
 
     @Test
