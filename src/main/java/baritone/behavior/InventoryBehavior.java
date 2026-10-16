@@ -64,6 +64,11 @@ public final class InventoryBehavior extends Behavior implements Helper {
             // we have a crafting table or a chest or something open
             return;
         }
+        if (!shouldRunInventoryManagement(baritone.getPathingControlManager().mostRecentInControl().isPresent())) {
+            // Discard a deferred automatic swap when Baritone has stopped controlling a process.
+            lastTickRequestedMove = null;
+            return;
+        }
         ticksSinceLastInventoryMove++;
 
         int[] nextMove;
@@ -83,6 +88,10 @@ public final class InventoryBehavior extends Behavior implements Helper {
             requestSwapWithHotBar(nextMove[0], nextMove[1]);
             return; // one move per tick; preserve any queued request until it succeeds or is invalidated
         }
+    }
+
+    static boolean shouldRunInventoryManagement(boolean processInControl) {
+        return processInControl;
     }
 
     public boolean attemptToPutOnHotbar(int inMainInvy, Predicate<Integer> disallowedHotbar) {
