@@ -827,6 +827,27 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ((BlockHitResult) hit).getBlockPos().equals(expectedBlock);
     }
 
+    static boolean shouldIssueManualInteractionClick(boolean emptyHand, boolean aimedAtTarget, boolean retryReady) {
+        return emptyHand && aimedAtTarget && retryReady;
+    }
+
+    /**
+     * Stable-state interactions must not fall through to ItemStack#useOn and place the selected
+     * block. Select an empty hotbar slot before issuing the right-click; if none exists, defer it.
+     */
+    private boolean selectEmptyHotbarSlotForManualInteraction() {
+        if (ctx.player().getMainHandItem().isEmpty()) {
+            return true;
+        }
+        for (int slot = 0; slot < 9; slot++) {
+            if (ctx.player().getInventory().getItem(slot).isEmpty()) {
+                ctx.player().getInventory().setSelectedSlot(slot);
+                return true;
+            }
+        }
+        return false;
+    }
+
     static boolean supportsManualOpenToggle(BlockState state) {
         if (state == null) {
             return false;
@@ -1267,9 +1288,12 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             Rotation rot = toToggle.get().getB();
             BetterBlockPos pos = toToggle.get().getA();
             baritone.getLookBehavior().updateTarget(rot, true);
-            if (isAimedAtBlock(ctx.objectMouseOver(), pos) && ticks <= 0) {
+            if (ticks <= 0 && selectEmptyHotbarSlotForManualInteraction()
+                    && shouldIssueManualInteractionClick(
+                            ctx.player().getMainHandItem().isEmpty(),
+                            isAimedAtBlock(ctx.objectMouseOver(), pos), true)) {
                 // These blocks use a normal right-click to select the desired stable state.
-                // Do not sneak: sneaking can suppress the block interaction and place the held item.
+                // Never sneak or use a non-empty hand: either can place/use the held item instead.
                 baritone.getInputOverrideHandler().setInputForceState(Input.SNEAK, false);
                 baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
                 ticks = INITIAL_PLACEMENT_RETRY_TICKS;
