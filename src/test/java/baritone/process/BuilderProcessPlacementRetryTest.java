@@ -135,11 +135,12 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
-    public void manualInteractionClickRequiresEmptyHandAndVerifiedAim() {
-        assertTrue(BuilderProcess.shouldIssueManualInteractionClick(true, true, true));
-        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(false, true, true));
-        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, false, true));
-        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, true, false));
+    public void manualInteractionClickRequiresBothHandsEmptyAndVerifiedAim() {
+        assertTrue(BuilderProcess.shouldIssueManualInteractionClick(true, true, true, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(false, true, true, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, false, true, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, true, false, true));
+        assertFalse(BuilderProcess.shouldIssueManualInteractionClick(true, true, true, false));
     }
 
     @Test
