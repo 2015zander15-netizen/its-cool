@@ -827,8 +827,9 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 && ((BlockHitResult) hit).getBlockPos().equals(expectedBlock);
     }
 
-    static boolean shouldIssueManualInteractionClick(boolean emptyHand, boolean aimedAtTarget, boolean retryReady) {
-        return emptyHand && aimedAtTarget && retryReady;
+    static boolean shouldIssueManualInteractionClick(boolean mainHandEmpty, boolean offHandEmpty,
+            boolean aimedAtTarget, boolean retryReady) {
+        return mainHandEmpty && offHandEmpty && aimedAtTarget && retryReady;
     }
 
     /**
@@ -1291,6 +1292,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
             if (ticks <= 0 && selectEmptyHotbarSlotForManualInteraction()
                     && shouldIssueManualInteractionClick(
                             ctx.player().getMainHandItem().isEmpty(),
+                            ctx.player().getOffhandItem().isEmpty(),
                             isAimedAtBlock(ctx.objectMouseOver(), pos), true)) {
                 // These blocks use a normal right-click to select the desired stable state.
                 // Never sneak or use a non-empty hand: either can place/use the held item instead.
