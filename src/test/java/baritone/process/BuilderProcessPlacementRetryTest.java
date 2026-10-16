@@ -62,6 +62,22 @@ public class BuilderProcessPlacementRetryTest {
     }
 
     @Test
+    public void waterBucketSatisfiesBubbleColumnMaterialRequirement() {
+        BlockState placeable = BuilderProcess.approximatePlaceableState(
+                new ItemStack(Items.WATER_BUCKET), null
+        );
+        BlockState bubbleColumn = Blocks.BUBBLE_COLUMN.defaultBlockState();
+
+        assertEquals(Blocks.WATER.defaultBlockState(), placeable);
+        assertTrue(BuilderProcess.containsBlockState(Collections.singletonList(placeable), bubbleColumn));
+
+        Map<BlockState, Integer> missing = new java.util.HashMap<>();
+        BuilderProcess.recordMissingMaterial(missing, bubbleColumn);
+        assertEquals(Integer.valueOf(1), missing.get(Blocks.WATER.defaultBlockState()));
+        assertFalse(missing.containsKey(bubbleColumn));
+    }
+
+    @Test
     public void pathFailureCountIncreasesOnlyForSameGoalWithoutProgress() {
         GoalBlock goal = new GoalBlock(1, 2, 3);
         GoalBlock differentGoal = new GoalBlock(4, 5, 6);
