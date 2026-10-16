@@ -2407,4 +2407,3 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
         }
     }
 }
-
